@@ -1,0 +1,15 @@
+# nodejs
+node_modules/
+dist/
+build/
+
+# environment variables
+.env
+
+# logs and databases
+data/
+*.log
+*.db
+
+# md files
+*.md
