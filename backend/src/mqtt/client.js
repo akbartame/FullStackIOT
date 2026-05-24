@@ -43,7 +43,6 @@ function onConnect() {
 }
 function onError(err) {
     console.error('[MQTT] Connection error:', err.message);
-    client.end();
 }
 function onReconnect() {
     console.log('[MQTT] Reconnecting to broker:', BROKER.host, 'Port:', BROKER.port);

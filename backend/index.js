@@ -1,7 +1,7 @@
 import { initDatabase } from './src/db/init.js';
 import { closeDatabase } from './src/db/database.js';
 import { startMaintenanceJob } from './src/db/maintenance.js';
-import { createMqttClient, getMqttClient } from './src/mqtt/client.js';
+import { createMqttClient } from './src/mqtt/client.js';
 import { registerSubscriber } from './src/mqtt/subscriber.js';
 import { createHttpServer } from './src/api/server.js';
 import { SERVER } from './src/config/index.js';
@@ -56,34 +56,40 @@ console.log('[APP] Backend initialization complete');
 function gracefulShutdown(signal) {
     console.log(`\n[APP] Received ${signal}, shutting down gracefully...`);
 
-    // Stop accepting new connections
-    if (httpServer) {
-        httpServer.close(() => {
-            console.log('[API] Server closed');
-        });
-    }
-
-    // Cleanup maintenance job
-    if (maintenanceInterval) {
-        clearInterval(maintenanceInterval);
-        console.log('[DB] Maintenance job stopped');
-    }
-
-    // Close MQTT connection
-    if (mqttClient) {
-        mqttClient.end(false, () => {
-            console.log('[MQTT] Client disconnected');
-        });
-    }
-
-    // Close database connection
-    closeDatabase();
-
-    // Exit after a reasonable timeout
-    setTimeout(() => {
+    const forceExit = setTimeout(() => {
         console.log('[APP] Shutdown timeout exceeded, forcing exit');
         process.exit(1);
     }, 5000);
+
+    // Allow the timeout to not block the process if everything closes cleanly
+    forceExit.unref();
+
+    function teardown() {
+        if (maintenanceInterval) {
+            clearInterval(maintenanceInterval);
+            console.log('[DB] Maintenance job stopped');
+        }
+
+        if (mqttClient) {
+            mqttClient.end(false, () => {
+                console.log('[MQTT] Client disconnected');
+                closeDatabase();
+                process.exit(0);
+            });
+        } else {
+            closeDatabase();
+            process.exit(0);
+        }
+    }
+
+    if (httpServer) {
+        httpServer.close(() => {
+            console.log('[API] Server closed');
+            teardown();
+        });
+    } else {
+        teardown();
+    }
 }
 
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
