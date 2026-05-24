@@ -1,5 +1,7 @@
 import express from 'express';
 import { sendWifiConfig, sendCommand } from '../mqtt/publisher.js';
+import { getMqttClient } from '../mqtt/client.js';
+import db from '../db/database.js';
 
 /**
  * Create an Express-based HTTP control server for device commands.
@@ -10,7 +12,30 @@ export function createHttpServer(port = 3000) {
     app.use(express.json());
 
     app.get('/health', (req, res) => {
-        res.status(200).json({ status: 'ok' });
+        const checks = {};
+
+        // Check MQTT connection
+        try {
+            const mqttClient = getMqttClient();
+            checks.mqtt = mqttClient.connected ? 'ok' : 'disconnected';
+        } catch (err) {
+            checks.mqtt = 'error';
+        }
+
+        // Check database connection
+        try {
+            db.prepare('SELECT 1').get();
+            checks.db = 'ok';
+        } catch (err) {
+            checks.db = 'error';
+        }
+
+        const allOk = Object.values(checks).every(v => v === 'ok');
+
+        return res.status(allOk ? 200 : 503).json({
+            status: allOk ? 'ok' : 'degraded',
+            checks,
+        });
     });
 
     app.post('/wifi/open', async (req, res) => {
