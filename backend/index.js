@@ -3,7 +3,7 @@ import { closeDatabase } from './src/db/database.js';
 import { startMaintenanceJob } from './src/db/maintenance.js';
 import { createMqttClient, getMqttClient } from './src/mqtt/client.js';
 import { registerSubscriber } from './src/mqtt/subscriber.js';
-import { createHttpServer } from './src/http/server.js';
+import { createHttpServer } from './src/api/server.js';
 import { SERVER } from './src/config/index.js';
 
 let mqttClient = null;
@@ -33,8 +33,8 @@ try {
 // Start HTTP control server (localhost only)
 try {
     httpServer = createHttpServer(SERVER.port);
-    httpServer.listen(SERVER.port, '127.0.0.1', () => {
-        console.log(`[HTTP] Control server listening on http://127.0.0.1:${SERVER.port}`);
+    httpServer.listen(SERVER.port, SERVER.bindAddr, () => {
+        console.log(`[HTTP] Control server listening on http://${SERVER.bindAddr}:${SERVER.port}`);
     });
 } catch (err) {
     console.error('[APP] Fatal: HTTP server initialization failed:', err.message);

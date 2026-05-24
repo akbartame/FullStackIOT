@@ -42,7 +42,7 @@ export function insertReading(record) {
     const stmt = getInsertStmt();
     const params = {
         device_id: record.device_id,
-        received_at: record.recieved_at,  // Note: parser has typo 'recieved_at'
+        received_at: record.received_at,
         device_uptime_ms: record.device_uptime_ms,
         temperature_c: record.temperature_c,
         humidity: record.humidity,

@@ -67,17 +67,3 @@ export function sendWifiConfig(deviceId, state) {
     const topic = TOPICS.wifiConfig(deviceId);
     return publish(topic, state);
 }
-
-/**
- * Open WiFi portal on default device (FSIOT_WD1M_001)
- */
-export function sendWifiPortalOpen() {
-    return sendWifiConfig('FSIOT_WD1M_001', 'open');
-}
-
-/**
- * Close WiFi portal on default device
- */
-export function sendWifiPortalClose() {
-    return sendWifiConfig('FSIOT_WD1M_001', 'close');
-}

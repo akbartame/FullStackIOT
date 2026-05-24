@@ -13,3 +13,6 @@ data/
 
 # md files
 *.md
+
+# Ignored JavaScript files
+IGNORED*.js

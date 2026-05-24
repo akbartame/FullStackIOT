@@ -18,8 +18,7 @@ export function createMqttClient() {
         reconnectPeriod: 5000, // Reconnect after 5 seconds if disconnected
         connectTimeout: 30 * 1000, // Timeout for initial connection attempt
 
-        // Clean session means the broker won't store any subscription or message data for the client when it disconnects
-        clean: true,
+        clean: false,
     });
 
     client.on('connect', onConnect);

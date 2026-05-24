@@ -25,7 +25,7 @@ import { VALIDATION } from '../config/index.js';
 // }
 
 export function parseSensorPayload(raw, deviceId) {
-    const recievedAt = Date.now();
+    const receivedAt = Date.now();
 
     const dht11 = extractDht11(raw.dht11 || {});
     const mq2 = extractMq2(raw.mq2 || {});
@@ -34,7 +34,7 @@ export function parseSensorPayload(raw, deviceId) {
 
     return {
         device_id : deviceId,
-        recieved_at : recievedAt,
+        received_at : receivedAt,
         device_uptime_ms : raw.timestamp_ms ?? null,
 
         // DHT11

@@ -76,6 +76,7 @@ export const DB = {
 // ── API Server ────────────────────────────────────────────
 export const SERVER = {
   port: parseInt(process.env.API_PORT) || 3000,
+  bindAddr: process.env.API_BIND_ADDR || '0.0.0.0',
 };
 
 // ── Validation thresholds ─────────────────────────────────

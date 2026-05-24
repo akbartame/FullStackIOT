@@ -1,5 +1,5 @@
 import http from 'http';
-import { sendWifiPortalOpen, sendWifiPortalClose, sendCommand } from '../mqtt/publisher.js';
+import { sendWifiConfig, sendCommand } from '../mqtt/publisher.js';
 
 /**
  * Create HTTP control server for sending commands to the device
@@ -7,8 +7,8 @@ import { sendWifiPortalOpen, sendWifiPortalClose, sendCommand } from '../mqtt/pu
  */
 export function createHttpServer(port = 3000) {
     const server = http.createServer(async (req, res) => {
-        // Only accept POST requests
-        if (req.method !== 'POST') {
+        // Allow GET /health and POST for control endpoints
+        if (req.method !== 'POST' && req.method !== 'GET') {
             res.writeHead(405, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ error: 'Method not allowed' }));
             return;
@@ -41,38 +41,64 @@ async function handleRequest(req, res, body) {
     const url = new URL(req.url, 'http://localhost');
     const path = url.pathname;
 
+    // Health check endpoint
+    if (req.method === 'GET' && path === '/health') {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ status: 'ok' }));
+        return;
+    }
+
     if (path === '/wifi/open') {
-        const result = await sendWifiPortalOpen();
+        let deviceId;
+        try {
+            const json = JSON.parse(body);
+            deviceId = json.deviceId;
+        } catch (err) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'Invalid JSON body. Expected { "deviceId": "..." }' }));
+            return;
+        }
+        const result = await sendWifiConfig(deviceId, 'open');
         res.writeHead(result.ok ? 200 : 500, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify(result));
         return;
     }
 
     if (path === '/wifi/close') {
-        const result = await sendWifiPortalClose();
+        let deviceId;
+        try {
+            const json = JSON.parse(body);
+            deviceId = json.deviceId;
+        } catch (err) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'Invalid JSON body. Expected { "deviceId": "..." }' }));
+            return;
+        }
+        const result = await sendWifiConfig(deviceId, 'close');
         res.writeHead(result.ok ? 200 : 500, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify(result));
         return;
     }
 
     if (path === '/command') {
-        let payload;
+        let payload, deviceId;
         try {
             const json = JSON.parse(body);
             payload = json.payload;
+            deviceId = json.deviceId;
         } catch (err) {
             res.writeHead(400, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ error: 'Invalid JSON body. Expected { "payload": "..." }' }));
+            res.end(JSON.stringify({ error: 'Invalid JSON body. Expected { "payload": "...", "deviceId": "..." }' }));
             return;
         }
 
-        if (!payload) {
+        if (!payload || !deviceId) {
             res.writeHead(400, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ error: 'payload field is required' }));
+            res.end(JSON.stringify({ error: 'payload and deviceId fields are required' }));
             return;
         }
 
-        const result = await sendCommand('FSIOT_WD1M_001', payload);
+        const result = await sendCommand(deviceId, payload);
         res.writeHead(result.ok ? 200 : 500, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify(result));
         return;
