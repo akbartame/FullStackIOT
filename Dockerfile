@@ -1,8 +1,6 @@
 # ── Stage 1: build ────────────────────────────────────────
-# Install deps including native addon compilation (better-sqlite3)
 FROM node:24-alpine AS build
 
-# Build tools required for better-sqlite3 native compilation
 RUN apk add --no-cache python3 make g++
 
 WORKDIR /app/backend
@@ -13,25 +11,22 @@ RUN npm ci
 COPY backend/ ./
 
 # ── Stage 2: runtime ──────────────────────────────────────
-# Lean image — only production artifacts
 FROM node:24-alpine AS runtime
 
 WORKDIR /app/backend
 
-# Copy only production node_modules and app source from build stage
-COPY --from=build /app/backend/node_modules ./node_modules
-COPY --from=build /app/backend/src          ./src
-COPY --from=build /app/backend/index.js     ./index.js
-COPY --from=build /app/backend/package.json ./package.json
+# Create user and data directory before copying files
+RUN adduser -D -h /home/appuser appuser \
+    && mkdir -p /app/backend/data \
+    && chown appuser:appuser /app/backend/data
 
-# Create SQLite data directory with correct permissions
-RUN mkdir -p /app/backend/data
+# Copy with ownership set at copy time — no chown -R needed
+COPY --from=build --chown=appuser:appuser /app/backend/node_modules ./node_modules
+COPY --from=build --chown=appuser:appuser /app/backend/src          ./src
+COPY --from=build --chown=appuser:appuser /app/backend/index.js     ./index.js
+COPY --from=build --chown=appuser:appuser /app/backend/package.json ./package.json
 
 ENV NODE_ENV=production
-
-# Create unprivileged user and transfer ownership
-RUN adduser -D -h /home/appuser appuser \
-    && chown -R appuser:appuser /app/backend
 
 USER appuser
 

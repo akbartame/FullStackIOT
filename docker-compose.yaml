@@ -10,9 +10,13 @@ services:
     ports:
       - "3000:3000"
 
+    extra_hosts:
+      - "host-gateway:host-gateway"
+
     volumes:
       # Persist SQLite database on the host
       - ./backend/data:/app/backend/data
+      - ./backend/.env:/app/backend/.env:ro
 
     env_file:
       - ./backend/.env
