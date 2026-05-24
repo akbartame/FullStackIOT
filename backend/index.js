@@ -30,11 +30,11 @@ try {
     process.exit(1);
 }
 
-// Start HTTP control server (localhost only)
+// Start HTTP control server
 try {
-    httpServer = createHttpServer(SERVER.port);
-    httpServer.listen(SERVER.port, SERVER.bindAddr, () => {
-        console.log(`[HTTP] Control server listening on http://${SERVER.bindAddr}:${SERVER.port}`);
+    const app = createHttpServer(SERVER.port);
+    httpServer = app.listen(SERVER.port, SERVER.bindAddr, () => {
+        console.log(`[API] Control server listening on http://${SERVER.bindAddr}:${SERVER.port}`);
     });
 } catch (err) {
     console.error('[APP] Fatal: HTTP server initialization failed:', err.message);
@@ -59,7 +59,7 @@ function gracefulShutdown(signal) {
     // Stop accepting new connections
     if (httpServer) {
         httpServer.close(() => {
-            console.log('[HTTP] Server closed');
+            console.log('[API] Server closed');
         });
     }
 

@@ -44,12 +44,14 @@ Configuration
 	- **API_BIND_ADDR**: address to bind inside container (default 0.0.0.0)
 	- **DB_PATH**: path to SQLite DB file (default ./data/fsiot.db)
 
-API Endpoints
+REST API Endpoints
 
 - POST /wifi/open — open device wifi portal
+    - Body: `{ "deviceId": "DEVICE" }`
 - POST /wifi/close — close device wifi portal
+    - Body: `{ "deviceId": "DEVICE" }`
 - POST /command — send arbitrary command to device
-	- Body: `{ "payload": "your-command-here" }`
+	- Body: `{ "deviceId": "DEVICE", "payload": "your-command-here" }`
 - GET /health — health check (returns 200 OK when server responds)
 
 Data persistence & backups
