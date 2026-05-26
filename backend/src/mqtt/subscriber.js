@@ -1,6 +1,7 @@
 import { TOPICS, parseTopic } from '../config/index.js';
 import { parseSensorPayload } from '../parser/sensorParser.js';
 import { insertReading } from '../db/queries.js';
+import { ALLOWED_DEVICE_PREFIX } from '../config/index.js';
 
 export function registerSubscriber(client) {
     client.on('connect', () => {
@@ -30,6 +31,11 @@ function handleMessage(topic, message) {
     }
 
     const { deviceId, type } = parsed;
+
+    if (ALLOWED_DEVICE_PREFIX && !deviceId.startsWith(ALLOWED_DEVICE_PREFIX)) {
+        console.warn('[SUB] Ignoring message from unauthorized device:', deviceId);
+        return;
+    }
 
     switch (type) {
         case 'sensorDetail':

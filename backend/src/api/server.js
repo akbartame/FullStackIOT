@@ -1,4 +1,6 @@
 import express from 'express';
+import cors from 'express';
+import morgan from 'morgan';
 import { sendWifiConfig, sendCommand } from '../mqtt/publisher.js';
 import { getMqttClient } from '../mqtt/client.js';
 import db from '../db/database.js';
@@ -31,7 +33,14 @@ function handleRouteError(res, context, err) {
 export function createHttpServer(port = 3000) {
     const app = express();
 
+    app.use(morgan('combined'));
     app.use(express.json());
+    app.use((req, res, next) => {
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Access-Control-Allow-Methods', 'GET, POST');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+        next();
+    });
 
     // ── Health ────────────────────────────────────────────
 
