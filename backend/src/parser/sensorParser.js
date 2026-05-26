@@ -25,7 +25,7 @@ import { VALIDATION } from '../config/index.js';
 // }
 
 export function parseSensorPayload(raw, deviceId) {
-    const receivedAt = Date.now();
+    const receivedAt = Math.floor(Date.now() / 1000);
 
     const dht11 = extractDht11(raw.dht11 || {});
     const mq2 = extractMq2(raw.mq2 || {});
