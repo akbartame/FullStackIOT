@@ -1,4 +1,20 @@
+import { useLatest, getDeviceStatus } from '../hooks/useLatest'
+import { SensorCard } from '../components/SensorCard'
+import { getCurrentTimeSeconds } from '../api'
+
 export default function Dashboard() {
+  const { readings, loading, error, refetch } = useLatest()
+
+  // Calculate summary stats
+  const totalReadings = readings.length
+  const onlineReadings = readings.filter(
+    (r) => getDeviceStatus(r.received_at) === 'online'
+  ).length
+  const oldestReading =
+    readings.length > 0
+      ? Math.max(...readings.map((r) => getCurrentTimeSeconds() - r.received_at))
+      : null
+
   return (
     <div className="page-enter" style={{ padding: '32px' }}>
 
@@ -32,9 +48,9 @@ export default function Dashboard() {
         marginBottom: '32px',
       }}>
         {[
-          { label: 'DEVICES', value: '—', unit: 'total' },
-          { label: 'ONLINE',  value: '—', unit: 'active' },
-          { label: 'LAST UPDATE', value: '—', unit: 'ago' },
+          { label: 'DEVICES', value: loading ? '—' : totalReadings, unit: 'total' },
+          { label: 'ONLINE',  value: loading ? '—' : onlineReadings, unit: 'active' },
+          { label: 'LAST UPDATE', value: loading ? '—' : oldestReading ? `${oldestReading}s` : '—', unit: 'ago' },
         ].map(({ label, value, unit }) => (
           <div key={label} style={{
             background: 'var(--bg-surface)',
@@ -76,80 +92,84 @@ export default function Dashboard() {
         SENSOR READINGS
       </div>
 
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-        gap: '12px',
-      }}>
-        {/* Placeholder card */}
+      {/* Error State */}
+      {error && (
         <div style={{
-          background: 'var(--bg-surface)',
-          border: '1px solid var(--border)',
-          padding: '20px',
+          background: 'rgba(239, 68, 68, 0.1)',
+          border: '1px solid rgba(239, 68, 68, 0.2)',
+          color: 'var(--red)',
+          padding: '16px',
+          borderRadius: '4px',
+          marginBottom: '16px',
+          fontFamily: 'var(--font-mono)',
+          fontSize: '12px',
         }}>
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'flex-start',
-            marginBottom: '20px',
-          }}>
-            <div>
-              <div style={{
-                fontFamily: 'var(--font-mono)',
-                fontSize: '12px',
-                color: 'var(--text-secondary)',
-                marginBottom: '4px',
-              }}>DEVICE ID</div>
-              <div style={{
-                fontFamily: 'var(--font-mono)',
-                fontSize: '14px',
-                fontWeight: 600,
-                color: 'var(--text-primary)',
-              }}>—</div>
-            </div>
-            <div style={{
+          ⚠ {error}
+          <button
+            onClick={refetch}
+            style={{
+              marginLeft: '12px',
+              padding: '4px 8px',
+              background: 'var(--accent)',
+              color: 'var(--text-primary)',
+              border: 'none',
+              borderRadius: '2px',
+              cursor: 'pointer',
               fontFamily: 'var(--font-mono)',
-              fontSize: '10px',
-              padding: '3px 8px',
-              background: 'rgba(34,197,94,0.1)',
-              color: 'var(--green)',
-              border: '1px solid rgba(34,197,94,0.2)',
-            }}>WAITING</div>
-          </div>
+              fontSize: '11px',
+            }}
+          >
+            RETRY
+          </button>
+        </div>
+      )}
 
-          {[
-            { label: 'TEMPERATURE', value: '—', unit: '°C' },
-            { label: 'HUMIDITY',    value: '—', unit: '%' },
-            { label: 'GAS PPM',     value: '—', unit: 'ppm' },
-          ].map(({ label, value, unit }) => (
-            <div key={label} style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'baseline',
-              padding: '8px 0',
-              borderTop: '1px solid var(--border)',
-            }}>
-              <span style={{
-                fontFamily: 'var(--font-mono)',
-                fontSize: '10px',
-                color: 'var(--text-muted)',
-                letterSpacing: '0.1em',
-              }}>{label}</span>
-              <span style={{
-                fontFamily: 'var(--font-mono)',
-                fontSize: '18px',
-                fontWeight: 500,
-                color: 'var(--text-primary)',
-              }}>
-                {value}
-                <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginLeft: '3px' }}>
-                  {unit}
-                </span>
-              </span>
+      {/* Loading State */}
+      {loading && readings.length === 0 && (
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+          gap: '12px',
+        }}>
+          {[1, 2, 3].map((i) => (
+            <div
+              key={i}
+              style={{
+                background: 'var(--bg-surface)',
+                border: '1px solid var(--border)',
+                padding: '20px',
+                animation: 'pulse 2s infinite',
+              }}
+            >
+              <div style={{ height: '200px', background: 'var(--border)', borderRadius: '2px' }} />
             </div>
           ))}
         </div>
-      </div>
+      )}
+
+      {/* Cards Grid */}
+      {!loading && readings.length === 0 && (
+        <div style={{
+          padding: '32px',
+          textAlign: 'center',
+          color: 'var(--text-muted)',
+          fontFamily: 'var(--font-mono)',
+        }}>
+          No readings available. Backend may be offline or devices haven't reported yet.
+        </div>
+      )}
+
+      {readings.length > 0 && (
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+          gap: '12px',
+        }}>
+          {readings.map((reading) => (
+            <SensorCard key={reading.id} reading={reading} />
+          ))}
+        </div>
+      )}
 
     </div>
   )
