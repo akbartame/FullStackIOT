@@ -22,12 +22,12 @@ export function getDevices() {
         stmtDevices = db.prepare(`
             SELECT
                 device_id,
-                MAX(received_at)  AS last_seen_ms,
+                MAX(received_at)  AS last_seen,
                 COUNT(*)          AS total_readings,
                 SUM(is_valid)     AS valid_readings
             FROM sensor_readings
             GROUP BY device_id
-            ORDER BY last_seen_ms DESC
+            ORDER BY last_seen DESC
         `);
     }
     return stmtDevices.all();

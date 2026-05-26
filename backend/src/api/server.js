@@ -80,7 +80,7 @@ export function createHttpServer(port = 3000) {
     // [
     //   {
     //     "device_id": "FSIOT_WD1M_001",
-    //     "last_seen_ms": 1748123456,
+    //     "last_seen": 1748123456,
     //     "total_readings": 4320,
     //     "valid_readings": 4301
     //   }
