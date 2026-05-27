@@ -2,7 +2,7 @@
 export const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000'
 
 // Polling & Device Thresholds
-export const POLL_INTERVAL_MS = 5000
+export const POLL_INTERVAL_MS = 2000
 export const DEVICE_STALE_THRESHOLD_S = 15   // seconds — data is 15s old
 export const DEVICE_OFFLINE_THRESHOLD_S = 60  // seconds — device offline if no data in 60s
 

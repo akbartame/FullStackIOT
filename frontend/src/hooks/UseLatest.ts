@@ -95,8 +95,9 @@ export const useLatest = (
  * Helper: Get device status based on last_seen timestamp
  * Used by DeviceStatusBadge and other components
  */
-export const getDeviceStatus = (lastSeenSeconds: number, nowSeconds: number = getCurrentTimeSeconds()): 'online' | 'stale' | 'offline' => {
+export const getDeviceStatus = (lastSeenSeconds: number, nowSeconds: number = getCurrentTimeSeconds()): 'online' | 'stale' | 'offline' | 'waiting' => {
   const ageSec = nowSeconds - lastSeenSeconds
+  if (ageSec < 0) return 'waiting' // Future timestamp, treat as waiting
   if (ageSec < DEVICE_STALE_THRESHOLD_S) return 'online'
   if (ageSec < DEVICE_OFFLINE_THRESHOLD_S) return 'stale'
   return 'offline'

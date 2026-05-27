@@ -12,7 +12,7 @@ export default function Dashboard() {
   ).length
   const oldestReading =
     readings.length > 0
-      ? Math.max(...readings.map((r) => getCurrentTimeSeconds() - r.received_at))
+      ? Math.min(...readings.map((r) => getCurrentTimeSeconds() - r.received_at))
       : null
 
   return (

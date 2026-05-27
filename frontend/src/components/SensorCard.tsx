@@ -3,6 +3,7 @@ import type { SensorReading } from '../api'
 import { DeviceStatusBadge } from './DeviceStatusBadge'
 import { getDeviceStatus, getSensorHealth } from '../hooks/useLatest'
 import { getCurrentTimeSeconds, secondsToDate } from '../api'
+import { TEMP_MIN_C, TEMP_MAX_C, HUMIDITY_MIN, HUMIDITY_MAX, GAS_PPM_WARNING } from '../constant'
 
 export interface SensorCardProps {
   reading: SensorReading
@@ -29,24 +30,24 @@ export const SensorCard = ({ reading, className = '', style = {} }: SensorCardPr
   // Color temperature based on range
   const getTempColor = (temp: number | null): string => {
     if (temp === null) return 'var(--text-muted)'
-    if (temp < 18 || temp > 45) return 'var(--red)'
-    if (temp < 20 || temp > 40) return 'var(--yellow)'
+    if (temp < TEMP_MIN_C || temp > TEMP_MAX_C) return 'var(--red)'
+    if (temp < TEMP_MIN_C + 5 || temp > TEMP_MAX_C - 5) return 'var(--yellow)'
     return 'var(--green)'
   }
 
   // Color humidity based on range
   const getHumidityColor = (humidity: number | null): string => {
     if (humidity === null) return 'var(--text-muted)'
-    if (humidity < 25 || humidity > 85) return 'var(--red)'
-    if (humidity < 30 || humidity > 80) return 'var(--yellow)'
+    if (humidity < HUMIDITY_MIN || humidity > HUMIDITY_MAX) return 'var(--red)'
+    if (humidity < HUMIDITY_MIN + 10 || humidity > HUMIDITY_MAX - 10) return 'var(--yellow)'
     return 'var(--green)'
   }
 
   // Color gas PPM based on threshold
   const getGasColor = (ppm: number | null): string => {
     if (ppm === null) return 'var(--text-muted)'
-    if (ppm > 100) return 'var(--red)'
-    if (ppm > 50) return 'var(--yellow)'
+    if (ppm > GAS_PPM_WARNING) return 'var(--red)'
+    if (ppm > GAS_PPM_WARNING / 2) return 'var(--yellow)'
     return 'var(--green)'
   }
 
@@ -221,7 +222,7 @@ export const SensorCard = ({ reading, className = '', style = {} }: SensorCardPr
               color: getGasColor(reading.gas_ppm),
             }}
           >
-            {reading.gas_ppm != null ? reading.gas_ppm.toFixed(0) : '-'}
+            {reading.gas_ppm != null ? reading.gas_ppm.toFixed(1) : '-'}
           </div>
         </div>
 
