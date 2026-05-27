@@ -118,6 +118,7 @@ const formatXTick = (unixSeconds: number, rangeSeconds: number): string => {
 // ── Component ─────────────────────────────────────────────
 
 export interface SensorChartProps {
+  idle?:        boolean
   data:         ChartPoint[]
   metric:       MetricKey
   rangeSeconds: number
@@ -129,6 +130,7 @@ export const SensorChart = ({
   metric,
   rangeSeconds,
   loading = false,
+  idle    = false,
 }: SensorChartProps) => {
   const cfg = METRIC_CONFIG[metric]
 
@@ -160,8 +162,10 @@ export const SensorChart = ({
     )
   }
 
-  // Empty state
+  // Empty state (distinguishes idle vs no results in range)
   if (data.length === 0) {
+    const msg    = idle ? 'SELECT A DEVICE TO VIEW CHART' : 'NO DATA IN RANGE'
+    const detail = idle ? undefined : 'no readings match the current filters'
     return (
       <div
         style={{
@@ -176,11 +180,13 @@ export const SensorChart = ({
         }}
       >
         <div style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color: 'var(--text-muted)', letterSpacing: '0.1em' }}>
-          NO DATA
+          {msg}
         </div>
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', color: 'var(--text-muted)', opacity: 0.5 }}>
-          no readings in selected range
-        </div>
+        {detail && (
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', color: 'var(--text-muted)', opacity: 0.5 }}>
+            {detail}
+          </div>
+        )}
       </div>
     )
   }

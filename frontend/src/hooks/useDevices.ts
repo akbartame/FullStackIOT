@@ -1,52 +1,67 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useReducer, useEffect } from 'react'
 import { getDevices, handleApiError, type Device } from '../api'
 
-type Status = 'loading' | 'success' | 'error'
+// ── State & actions ───────────────────────────────────────
 
-export interface UseDevicesReturn {
-  devices:  Device[]
-  loading:  boolean
-  error:    string | null
-  refetch:  () => void
+interface State {
+  devices:    Device[]
+  resolvedId: number
+  error:      string | null
 }
 
-/**
- * Fetches the device list once on mount (no polling — device list
- * changes infrequently). Call refetch() to manually reload.
- */
-export const useDevices = (): UseDevicesReturn => {
-  const [devices, setDevices] = useState<Device[]>([])
-  const [status,  setStatus]  = useState<Status>('loading')
-  const [error,   setError]   = useState<string | null>(null)
-  const [tick,    setTick]    = useState(0)
+type Action =
+  | { type: 'FETCH_SUCCESS'; fetchId: number; payload: Device[] }
+  | { type: 'FETCH_ERROR';   fetchId: number; payload: string   }
 
-  const refetch = useCallback(() => setTick(t => t + 1), [])
+const initialState: State = {
+  devices:    [],
+  resolvedId: -1,   // -1 so fetchId=0 is immediately seen as "in flight"
+  error:      null,
+}
+
+function reducer(state: State, action: Action): State {
+  switch (action.type) {
+    case 'FETCH_SUCCESS':
+      return { devices: action.payload, resolvedId: action.fetchId, error: null }
+    case 'FETCH_ERROR':
+      return { ...state, resolvedId: action.fetchId, error: action.payload }
+  }
+}
+
+// ── Hook ─────────────────────────────────────────────────
+
+export interface UseDevicesReturn {
+  devices: Device[]
+  loading: boolean
+  error:   string | null
+  refetch: () => void
+}
+
+export const useDevices = (): UseDevicesReturn => {
+  const [fetchId, bumpFetch] = useReducer((n: number) => n + 1, 0)
+  const [state,   dispatch]  = useReducer(reducer, initialState)
 
   useEffect(() => {
     let cancelled = false
-
-    setStatus('loading')
-    setError(null)
+    const id = fetchId
 
     getDevices()
       .then(data => {
         if (cancelled) return
-        setDevices(data)
-        setStatus('success')
+        dispatch({ type: 'FETCH_SUCCESS', fetchId: id, payload: data })
       })
       .catch(err => {
         if (cancelled) return
-        setError(handleApiError(err))
-        setStatus('error')
+        dispatch({ type: 'FETCH_ERROR', fetchId: id, payload: handleApiError(err) })
       })
 
     return () => { cancelled = true }
-  }, [tick])
+  }, [fetchId])
 
   return {
-    devices,
-    loading: status === 'loading',
-    error,
-    refetch,
+    devices: state.devices,
+    loading: fetchId !== state.resolvedId,
+    error:   state.error,
+    refetch: bumpFetch,
   }
 }

@@ -15,9 +15,8 @@ export const GAS_PPM_WARNING = 100  // above this = warning
 export const MQ2_RATIO_THRESHOLD = 1.2  // MQ2 clean air ratio
 
 // Chart Configuration
-export const CHART_HEIGHT = 300
-export const CHART_MARGIN = { top: 5, right: 20, bottom: 20, left: 0 }
+export const CHART_HEIGHT = 400
+export const CHART_MARGIN = { top: 10, right: 20, bottom: 0, left: 0 }
 
 // History Query Defaults
-export const DEFAULT_HISTORY_LIMIT = 100
 export const DEFAULT_VALID_ONLY = true

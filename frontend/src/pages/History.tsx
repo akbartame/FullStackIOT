@@ -38,7 +38,7 @@ export default function History() {
   const { devices, loading: devicesLoading } = useDevices()
 
   // Load history data
-  const { readings, loading, error, refetch } = useHistory({
+  const { readings, loading, error, idle, refetch } = useHistory({
     deviceId:     selectedDevice,
     rangeSeconds,
     validOnly,
@@ -272,6 +272,7 @@ export default function History() {
         metric={activeMetric}
         rangeSeconds={rangeSeconds}
         loading={loading}
+        idle={idle}
       />
 
       {/* Stats row */}
