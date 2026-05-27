@@ -14,11 +14,15 @@
     "pm2:setup": "pm2 startup && pm2 save"
   },
   "dependencies": {
-    "mqtt": "*",
+    "archiver": "^8.0.0",
     "better-sqlite3": "*",
-    "express": "*",
     "dotenv": "*",
-    "morgan": "*"
+    "express": "*",
+    "fast-csv": "^5.0.7",
+    "morgan": "*",
+    "mqtt": "*",
+    "node-cron": "^4.2.1",
+    "parquetjs-lite": "^0.8.7"
   },
   "devDependencies": {
     "nodemon": "*",

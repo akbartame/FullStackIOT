@@ -18,9 +18,21 @@ export function initDatabase() {
         );
     `);
 
-    // Create index on received_at for efficient time-range queries
+    // Create index on device_id and received_at for efficient time-range queries
     db.exec(`
-        CREATE INDEX IF NOT EXISTS idx_received_at ON sensor_readings(received_at);
+        CREATE INDEX IF NOT EXISTS idx_device_time ON sensor_readings(device_id, received_at);
+    `);
+
+    db.exec(`
+        CREATE TABLE IF NOT EXISTS sensor_data_5m_agg (
+            id               INTEGER PRIMARY KEY AUTOINCREMENT,
+            device_id        TEXT    NOT NULL,
+            bucket_timestamp INTEGER NOT NULL,
+            avg_temperature_c REAL,
+            avg_humidity     REAL,
+            avg_gas_ppm      REAL,
+            UNIQUE(device_id, bucket_timestamp) 
+        );
     `);
 
     console.log('[DB] Database initialized successfully');

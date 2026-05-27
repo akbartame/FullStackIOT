@@ -10,6 +10,8 @@ const db = new Database(dbPath);
 
 // Enable foreign keys
 db.pragma('foreign_keys = ON');
+db.pragma('journal_mode = WAL'); // Better concurrency
+db.pragma('synchronous = NORMAL'); // Good durability with better performance
 
 export default db;
 
