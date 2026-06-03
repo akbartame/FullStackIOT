@@ -5,6 +5,7 @@ import { createMqttClient } from './src/mqtt/client.js';
 import { registerSubscriber } from './src/mqtt/subscriber.js';
 import { createHttpServer } from './src/api/server.js';
 import { SERVER } from './src/config/index.js';
+import { startAggregatorCron } from './src/cron/aggregator.js';
 
 let mqttClient = null;
 let httpServer = null;
@@ -15,6 +16,7 @@ console.log('[APP] Starting FullStackIOT Backend...');
 // Initialize database on startup
 try {
     initDatabase();
+    startAggregatorCron();
 } catch (err) {
     console.error('[APP] Fatal: Database initialization failed:', err.message);
     process.exit(1);
