@@ -5,6 +5,7 @@ import { sendWifiConfig, sendCommand } from '../mqtt/publisher.js';
 import { getMqttClient } from '../mqtt/client.js';
 import db from '../db/database.js';
 import { getDevices, getLatestReadings, getHistory } from '../db/readQueries.js';
+import { exportRawData, exportAggregatedCsv } from './export.js';
 
 // ── Helpers ───────────────────────────────────────────────
 
@@ -179,6 +180,27 @@ export function createHttpServer(port = 3000) {
             return res.status(200).json(rows);
         } catch (err) {
             return handleRouteError(res, 'GET /sensors/history', err);
+        }
+    });
+
+    // ── Export: Raw data ZIP ───────────────────────────────
+    // POST /api/export/raw
+    // Request body: { deviceIds: [...], startTime: <unix seconds>, endTime: <unix seconds> }
+    app.post('/api/export/raw', async (req, res) => {
+        try {
+            await exportRawData(req, res);
+        } catch (err) {
+            return handleRouteError(res, 'POST /api/export/raw', err);
+        }
+    });
+
+    // ── Export: Aggregated monthly CSV ────────────────────
+    // GET /api/export/aggregated?deviceId=<>&month=<1-12>&year=<> 
+    app.get('/api/export/aggregated', async (req, res) => {
+        try {
+            await exportAggregatedCsv(req, res);
+        } catch (err) {
+            return handleRouteError(res, 'GET /api/export/aggregated', err);
         }
     });
 
