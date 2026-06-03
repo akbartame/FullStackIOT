@@ -16,3 +16,6 @@ data/
 
 # Ignored JavaScript files
 IGNORED*.js
+
+# Ignore Parquet files
+parquet/
