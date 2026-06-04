@@ -81,7 +81,7 @@ export default function Export() {
 
       <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 260 }}>
-          <label className="label">DEVICES</label>
+          <label>DEVICES</label>
           <div style={{ 
             display: 'flex', flexDirection: 'column', gap: 8, 
             background: 'var(--bg-surface)', border: '1px solid var(--border)', 
