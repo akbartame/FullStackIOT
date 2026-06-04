@@ -1,5 +1,4 @@
 import express from 'express';
-import cors from 'express';
 import morgan from 'morgan';
 import { sendWifiConfig, sendCommand } from '../mqtt/publisher.js';
 import { getMqttClient } from '../mqtt/client.js';
@@ -38,8 +37,13 @@ export function createHttpServer(port = 3000) {
     app.use(express.json());
     app.use((req, res, next) => {
         res.setHeader('Access-Control-Allow-Origin', '*');
-        res.setHeader('Access-Control-Allow-Methods', 'GET, POST');
-        res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Accept');
+
+        if (req.method === 'OPTIONS') {
+            return res.status(204).send();
+        }
+
         next();
     });
 
