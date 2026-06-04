@@ -11,10 +11,32 @@ export default function Dashboard() {
   const onlineReadings = readings.filter(
     (r) => getDeviceStatus(r.received_at) === 'online'
   ).length
-  const oldestReading =
+  const oldestReadingRaw =
     readings.length > 0
       ? Math.min(...readings.map((r) => getCurrentTimeSeconds() - r.received_at))
       : null
+
+  let oldestReading = null
+  let unit = 's'
+
+  if (oldestReadingRaw !== null) {
+    if (oldestReadingRaw < 60) {
+      oldestReading = oldestReadingRaw
+      unit = 's'
+    } else if (oldestReadingRaw < 60 * 60) {
+      oldestReading = Math.floor(oldestReadingRaw / 60)
+      unit = 'm'
+    } else if (oldestReadingRaw < 60 * 60 * 24) {
+      oldestReading = Math.floor(oldestReadingRaw / (60 * 60))
+      unit = 'h'
+    } else if (oldestReadingRaw < 60 * 60 * 24 * 30) {
+      oldestReading = Math.floor(oldestReadingRaw / (60 * 60 * 24))
+      unit = 'd'
+    } else {
+      oldestReading = Math.floor(oldestReadingRaw / (60 * 60 * 24 * 30))
+      unit = 'mo'
+    }
+  }
 
   return (
     // Mengganti class "page-enter" dengan utility animasi dari @theme di index.css
@@ -31,17 +53,17 @@ export default function Dashboard() {
       </div>
 
       {/* Summary bar - Responsif: 1 kolom di HP, 3 kolom di sm (tablet/desktop) */}
-      <div className="mb-8 grid grid-cols-1 gap-2 sm:grid-cols-3">
+      <div className="mb-8 grid grid-cols-3 gap-2">
         {[
           { label: 'DEVICES', value: loading ? '—' : totalReadings, unit: 'total' },
           { label: 'ONLINE',  value: loading ? '—' : onlineReadings, unit: 'active' },
-          { label: 'LAST UPDATE', value: loading ? '—' : oldestReading ? `${oldestReading}s` : '—', unit: 'ago' },
+          { label: 'LAST UPDATE', value: loading ? '—' : oldestReading ? `${oldestReading}${unit}` : '—', unit: 'ago' },
         ].map(({ label, value, unit }) => (
-          <div key={label} className="border border-border-subtle bg-surface p-4 sm:p-5">
+          <div key={label} className="border border-border-subtle bg-surface p-2.5 sm:p-4 transition-normal duration-100">
             <Typography variant="caption" className="mb-2 block">
               {label}
             </Typography>
-            <div className="font-mono text-2xl font-semibold leading-none text-accent sm:text-3xl">
+            <div className="font-mono text-lg font-semibold leading-none text-accent sm:text-3xl transition-normal duration-100">
               {value}
             </div>
             <div className="mt-1 font-mono text-[10px] text-text-muted">
@@ -91,7 +113,7 @@ export default function Dashboard() {
 
       {/* Cards Grid */}
       {readings.length > 0 && (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 transition-normal duration-100">
           {readings.map((reading) => (
             <SensorCard key={reading.id} reading={reading} />
           ))}

@@ -19,6 +19,7 @@ import {
   CHART_HEIGHT,
   CHART_MARGIN,
 } from '../constant'
+// import { cn } from '../utils/cn'
 
 // ── Per-metric config ─────────────────────────────────────
 
@@ -35,7 +36,7 @@ const METRIC_CONFIG: Record<MetricKey, MetricConfig> = {
   temperature_c: {
     label:  'Temperature',
     unit:   '°C',
-    color:  '#f5a623',
+    color:  '#f5a623', // Raw HEX diperlukan oleh Recharts Line stroke
     decimals: 1,
     domain: ['auto', 'auto'],
     refLines: [
@@ -83,21 +84,11 @@ const CustomTooltip = ({ active, payload, label, metric }: TooltipProps) => {
   const value = payload[0]?.value
 
   return (
-    <div
-      style={{
-        background:   'var(--bg-raised)',
-        border:       '1px solid var(--border-bright)',
-        padding:      '10px 14px',
-        fontFamily:   'var(--font-mono)',
-        fontSize:     '11px',
-        color:        'var(--text-primary)',
-        pointerEvents:'none',
-      }}
-    >
-      <div style={{ color: 'var(--text-muted)', marginBottom: '4px', fontSize: '10px' }}>
+    <div className="pointer-events-none border border-border-bright bg-raised p-3 font-mono text-[11px] text-text-primary shadow-lg">
+      <div className="mb-1 text-[10px] text-text-muted">
         {format(new Date(label * 1000), 'HH:mm:ss · dd MMM')}
       </div>
-      <div style={{ color: cfg.color, fontWeight: 600, fontSize: '14px' }}>
+      <div style={{ color: cfg.color }} className="text-sm font-semibold">
         {value !== null && value !== undefined
           ? `${value.toFixed(cfg.decimals)} ${cfg.unit}`
           : '—'}
@@ -110,7 +101,7 @@ const CustomTooltip = ({ active, payload, label, metric }: TooltipProps) => {
 
 const formatXTick = (unixSeconds: number, rangeSeconds: number): string => {
   const d = new Date(unixSeconds * 1000)
-  if (rangeSeconds <= 3600)   return format(d, 'HH:mm')
+  if (rangeSeconds <= 3600)  return format(d, 'HH:mm')
   if (rangeSeconds <= 86400)  return format(d, 'HH:mm')
   return format(d, 'dd/MM HH:mm')
 }
@@ -138,52 +129,30 @@ export const SensorChart = ({
   if (loading) {
     return (
       <div
-        style={{
-          height:         CHART_HEIGHT,
-          background:     'var(--bg-surface)',
-          border:         '1px solid var(--border)',
-          display:        'flex',
-          alignItems:     'center',
-          justifyContent: 'center',
-        }}
+        className="flex items-center justify-center border border-border-subtle bg-surface"
+        style={{ height: CHART_HEIGHT }}
       >
-        <div
-          className="pulse"
-          style={{
-            fontFamily: 'var(--font-mono)',
-            fontSize:   '11px',
-            color:      'var(--text-muted)',
-            letterSpacing: '0.1em',
-          }}
-        >
+        <div className="animate-pulse font-mono text-[11px] tracking-widest text-text-muted">
           LOADING DATA...
         </div>
       </div>
     )
   }
 
-  // Empty state (distinguishes idle vs no results in range)
+  // Empty state
   if (data.length === 0) {
     const msg    = idle ? 'SELECT A DEVICE TO VIEW CHART' : 'NO DATA IN RANGE'
     const detail = idle ? undefined : 'no readings match the current filters'
     return (
       <div
-        style={{
-          height:         CHART_HEIGHT,
-          background:     'var(--bg-surface)',
-          border:         '1px solid var(--border)',
-          display:        'flex',
-          alignItems:     'center',
-          justifyContent: 'center',
-          flexDirection:  'column',
-          gap:            '8px',
-        }}
+        className="flex flex-col items-center justify-center gap-2 border border-border-subtle bg-surface"
+        style={{ height: CHART_HEIGHT }}
       >
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color: 'var(--text-muted)', letterSpacing: '0.1em' }}>
+        <div className="font-mono text-[11px] tracking-widest text-text-muted">
           {msg}
         </div>
         {detail && (
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', color: 'var(--text-muted)', opacity: 0.5 }}>
+          <div className="font-mono text-[10px] opacity-50 text-text-muted">
             {detail}
           </div>
         )}
@@ -192,30 +161,18 @@ export const SensorChart = ({
   }
 
   return (
-    <div
-      style={{
-        background: 'var(--bg-surface)',
-        border:     '1px solid var(--border)',
-        padding:    '16px 8px 8px 0',
-      }}
-    >
+    <div className="border border-border-subtle bg-surface pt-4 pr-2 pb-2">
       {/* Metric label */}
       <div
-        style={{
-          fontFamily:    'var(--font-mono)',
-          fontSize:      '10px',
-          color:         cfg.color,
-          letterSpacing: '0.12em',
-          paddingLeft:   '24px',
-          marginBottom:  '12px',
-          opacity:       0.8,
-        }}
+        className="mb-3 pl-6 font-mono text-[10px] tracking-[0.12em] opacity-80"
+        style={{ color: cfg.color }}
       >
         {cfg.label.toUpperCase()} ({cfg.unit})
       </div>
 
       <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
         <LineChart data={data} margin={CHART_MARGIN}>
+          {/* Recharts SVG elements still need raw CSS variables for stroke/fill */}
           <CartesianGrid
             strokeDasharray="2 4"
             stroke="var(--border)"

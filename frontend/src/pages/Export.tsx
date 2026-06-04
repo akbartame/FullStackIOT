@@ -2,6 +2,8 @@ import { useState, useCallback } from 'react'
 import { useDevices } from '../hooks/useDevices'
 import { exportRawDataAPI } from '../api'
 import { triggerFileDownload } from '../utils/download'
+import { Typography } from '../components/Typography'
+import { cn } from '../utils/cn'
 
 const pad2 = (v: number) => String(v).padStart(2, '0')
 const formatDateTimeLocal = (seconds: number) => {
@@ -29,10 +31,10 @@ export default function Export() {
   const [error, setError] = useState<string | null>(null)
   const [activePreset, setActivePreset] = useState<number | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
+  
   const isAllSelected = devices.length > 0 && selectedDevices.length === devices.length
 
   const applyPreset = (seconds: number) => {
-    // Apply preset relative to the current `endTime` state to avoid impure calls at render
     setStartTime(prev => prev ? endTime - seconds : endTime - seconds)
     setActivePreset(seconds)
   }
@@ -72,160 +74,162 @@ export default function Export() {
     )
   }, [])
 
+  const filteredDevices = devices.filter(d => d.device_id.toLowerCase().includes(searchQuery.toLowerCase()))
+
   return (
-    <div className="page-enter" style={{ padding: 32 }}>
-      <div style={{ marginBottom: 24 }}>
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-muted)', letterSpacing: '0.15em', marginBottom: 6 }}>EXPORT DATA</div>
-        <h1 style={{ fontFamily: 'var(--font-mono)', fontSize: 24, fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>Export</h1>
+    <div className="animate-fade-up p-5 md:p-8">
+      
+      {/* Header */}
+      <div className="mb-8">
+        <Typography variant="caption" className="mb-1.5 block">
+          EXPORT DATA
+        </Typography>
+        <Typography variant="h1">
+          Export
+        </Typography>
       </div>
 
-      <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 260 }}>
-          <label>DEVICES</label>
-          <div style={{ 
-            display: 'flex', flexDirection: 'column', gap: 8, 
-            background: 'var(--bg-surface)', border: '1px solid var(--border)', 
-            padding: '8px', minHeight: '120px', maxHeight: '200px' 
-          }}>
-            {/* Kolom Input Pencarian */}
+      {/* Main Layout: Stack on mobile, Wrap on desktop */}
+      <div className="flex flex-col gap-8 md:flex-row md:flex-wrap md:items-start md:gap-8">
+        
+        {/* DEVICES SECTION */}
+        <div className="flex w-full flex-col gap-1.5 md:w-70">
+          <Typography variant="caption" as="label">DEVICES</Typography>
+          
+          <div className="flex min-h-40 max-h-60 flex-col gap-2 border border-border-subtle bg-surface p-2">
             <input 
               type="text" 
               placeholder="Cari device..." 
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              style={{ 
-                fontFamily: 'var(--font-mono)', fontSize: 13, 
-                padding: '4px 8px', background: 'transparent', 
-                color: 'var(--text-primary)', border: '1px solid var(--border)',
-                outline: 'none'
-              }}
+              className="w-full border border-border-subtle bg-transparent px-2.5 py-1.5 font-mono text-[13px] text-text-primary outline-none transition-colors focus:border-border-bright focus:bg-raised"
             />
             
-            {/* Daftar Device yang difilter */}
-            <div style={{ overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 4 }}>
-              {devices
-                .filter(d => d.device_id.toLowerCase().includes(searchQuery.toLowerCase()))
-                .map(d => {
-                  const isSelected = selectedDevices.includes(d.device_id)
-                  return (
-                    <div 
-                      key={d.device_id}
-                      onClick={() => handleToggleSelect(d.device_id)}
-                      style={{ 
-                        padding: '2px 6px', 
-                        cursor: 'pointer', 
-                        fontFamily: 'var(--font-mono)', 
-                        fontSize: 13,
-                        // Jika terpilih, gunakan warna accent, jika tidak biarkan transparan
-                        background: isSelected ? 'var(--accent)' : 'transparent',
-                        color: isSelected ? '#000' : 'var(--text-primary)',
-                        borderRadius: '1px',
-                        userSelect: 'none' // Mencegah teks ter-highlight biru saat diklik cepat
-                      }}
-                    >
-                      {d.device_id}
-                    </div>
-                  )
-                })}
-                
-                {/* Pesan jika pencarian tidak menemukan hasil */}
-                {devices.filter(d => d.device_id.toLowerCase().includes(searchQuery.toLowerCase())).length === 0 && (
-                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-muted)', padding: '4px 8px' }}>
-                    Tidak ada hasil.
+            <div className="flex flex-col gap-1 overflow-y-auto pr-1">
+              {filteredDevices.map(d => {
+                const isSelected = selectedDevices.includes(d.device_id)
+                return (
+                  <div 
+                    key={d.device_id}
+                    onClick={() => handleToggleSelect(d.device_id)}
+                    className={cn(
+                      "cursor-pointer rounded-[1px] px-2 py-1 font-mono text-[13px] select-none transition-colors",
+                      isSelected 
+                        ? "bg-accent text-black" 
+                        : "bg-transparent text-text-primary hover:bg-raised"
+                    )}
+                  >
+                    {d.device_id}
                   </div>
-                )}
+                )
+              })}
+              
+              {filteredDevices.length === 0 && (
+                <div className="px-2 py-1 font-mono text-[11px] text-text-muted">
+                  Tidak ada hasil.
+                </div>
+              )}
             </div>
           </div>
-          <div 
+
+          <button 
             onClick={() => {
               if (isAllSelected) {
-                setSelectedDevices([]);
+                setSelectedDevices([])
               } else {
-                const allValidDeviceIds = devices.map(d => d.device_id).filter(Boolean);
-                setSelectedDevices(allValidDeviceIds);
+                setSelectedDevices(devices.map(d => d.device_id).filter(Boolean))
               }
             }}
-            style={{
-              fontFamily: 'var(--font-mono)', 
-              fontSize: 11, 
-              color: isAllSelected ? 'var(--text-muted)' : 'var(--accent)', 
-              cursor: 'pointer',
-              userSelect: 'none',
-              background: 'var(--bg-surface)',
-              marginTop: 4,
-              maxWidth: 'fit-content',
-              padding: '4px 8px',
-              border: '1px solid var(--border)',
-            }}
+            className={cn(
+              "mt-1 w-fit cursor-pointer border px-2.5 py-1.5 font-mono text-[11px] select-none transition-colors",
+              isAllSelected 
+                ? "border-border-subtle bg-surface text-text-muted hover:text-text-primary"
+                : "border-accent/30 bg-accent/10 text-accent hover:bg-accent/20"
+            )}
           >
             {isAllSelected ? 'Unselect All' : 'Select All'}
-          </div>
-        </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <label style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-muted)' }}>PRESET</label>
-          <div style={{ display: 'flex', gap: 8 }}>
-            {PRESETS.map(p => (
-              <button 
-                key={p.label} 
-                onClick={() => applyPreset(p.seconds)} 
-                style={{ 
-                    padding: '8px 12px', 
-                    fontFamily: 'var(--font-mono)',
-                    fontSize: '11px',
-                    background: activePreset === p.seconds ? 'var(--accent)' : 'var(--bg-surface)',
-                    color: activePreset === p.seconds ? '#000' : 'var(--text-secondary)',
-                    border: '1px solid var(--border)',
-                }}
-              >
-                {p.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <label 
-            style={{ 
-              fontFamily: 'var(--font-mono)', 
-              fontSize: 10, 
-              color: 'var(--text-muted)' 
-              }}
-            >MANUAL RANGE
-          </label>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <input 
-              type="datetime-local" 
-              className="datetime-input"
-              value={formatDateTimeLocal(startTime)} 
-              onChange={e => {
-                setStartTime(parseDateTimeLocal(e.target.value))
-                setActivePreset(null) // Clear preset selection when manually changing time
-              }} 
-              style={{ fontFamily: 'var(--font-mono)', fontSize: 11, background: 'var(--bg-surface)', color: 'var(--text-primary)', border: '1px solid var(--border)', padding: '8px 12px' }} />
-            <input 
-              type="datetime-local"
-              className="datetime-input"
-              value={formatDateTimeLocal(endTime)} 
-              onChange={e => {
-                setEndTime(parseDateTimeLocal(e.target.value))
-                setActivePreset(null) // Clear preset selection when manually changing time
-              }} 
-              style={{ fontFamily: 'var(--font-mono)', fontSize: 11, background: 'var(--bg-surface)', color: 'var(--text-primary)', border: '1px solid var(--border)', padding: '8px 12px' }} />
-          </div>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-muted)' }}>Max RAW export range: 7 days.</div>
-        </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <label style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-muted)' }}>DOWNLOAD</label>
-          <button onClick={handleExportRaw} disabled={isExporting || devicesLoading || selectedDevices.length === 0} style={{ padding: '8px 12px', fontFamily: 'var(--font-mono)', fontSize: 11, background: 'var(--bg-green)', color: 'var(--green)', border: '1px solid var(--border-green)', maxWidth: 'fit-content' }}>
-            {isExporting ? 'Sedang Menyiapkan...' : '↓ RAW ZIP'}
           </button>
         </div>
+
+        {/* TIME & EXPORT CONTROLS WRAPPER */}
+        <div className="flex flex-col gap-8 md:flex-1 md:min-w-100">
+          
+          {/* PRESETS */}
+          <div className="flex flex-col gap-1.5">
+            <Typography variant="caption" as="label">PRESET</Typography>
+            <div className="flex flex-wrap gap-2">
+              {PRESETS.map(p => (
+                <button 
+                  key={p.label} 
+                  onClick={() => applyPreset(p.seconds)} 
+                  className={cn(
+                    "border px-3.5 py-2 font-mono text-[11px] transition-colors",
+                    activePreset === p.seconds 
+                      ? "border-accent bg-accent text-black" 
+                      : "border-border-subtle bg-surface text-text-secondary hover:text-text-primary"
+                  )}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* MANUAL RANGE */}
+          <div className="flex flex-col gap-1.5">
+            <Typography variant="caption" as="label">MANUAL RANGE</Typography>
+            <div className="flex flex-col gap-2 sm:flex-row sm:gap-3">
+              <input 
+                type="datetime-local" 
+                className="datetime-input w-full border border-border-subtle bg-surface px-3 py-2 font-mono text-[11px] text-text-primary outline-none focus:border-border-bright sm:w-auto"
+                value={formatDateTimeLocal(startTime)} 
+                onChange={e => {
+                  setStartTime(parseDateTimeLocal(e.target.value))
+                  setActivePreset(null)
+                }} 
+              />
+              <input 
+                type="datetime-local"
+                className="datetime-input w-full border border-border-subtle bg-surface px-3 py-2 font-mono text-[11px] text-text-primary outline-none focus:border-border-bright sm:w-auto"
+                value={formatDateTimeLocal(endTime)} 
+                onChange={e => {
+                  setEndTime(parseDateTimeLocal(e.target.value))
+                  setActivePreset(null)
+                }} 
+              />
+            </div>
+            <div className="mt-0.5 font-mono text-[10px] text-text-muted">
+              Max RAW export range: 7 days.
+            </div>
+          </div>
+
+          {/* EXPORT TRIGGER */}
+          <div className="flex flex-col gap-1.5 pt-2">
+            <Typography variant="caption" as="label">DOWNLOAD</Typography>
+            <button 
+              onClick={handleExportRaw} 
+              disabled={isExporting || devicesLoading || selectedDevices.length === 0} 
+              className={cn(
+                "w-fit border px-4 py-2 font-mono text-[11px] font-semibold tracking-widest transition-colors",
+                isExporting || devicesLoading || selectedDevices.length === 0
+                  ? "cursor-not-allowed border-border-subtle bg-surface text-text-muted opacity-50"
+                  : "cursor-pointer border-green-500/30 bg-green-500/10 text-green-500 hover:bg-green-500/20"
+              )}
+            >
+              {isExporting ? 'SEDANG MENYIAPKAN...' : '↓ RAW ZIP'}
+            </button>
+          </div>
+          
+        </div>
       </div>
-      <div className="bg-red-100 text-red-800 p-2 rounded mt-2 font-mono">
-        {error}
-      </div>
+
+      {/* ERROR BANNER */}
+      {error && (
+        <div className="mt-8 border border-red-500/20 bg-red-500/10 p-4 font-mono text-[11px] text-red-500">
+          ⚠ {error}
+        </div>
+      )}
+
     </div>
   )
 }

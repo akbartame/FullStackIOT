@@ -2,6 +2,8 @@ import { useState, useMemo } from 'react'
 import { useHistory, computeStats, toChartData, type MetricKey } from '../hooks/useHistory'
 import { SensorChart } from '../components/SensorChart'
 import { useDevices } from '../hooks/useDevices'
+import { Typography } from '../components/Typography'
+import { cn } from '../utils/cn'
 
 // ── Constants ─────────────────────────────────────────────
 
@@ -51,63 +53,33 @@ export default function History() {
   const decimals = activeMetric === 'gas_ppm' ? 1 : 1
 
   return (
-    <div className="page-enter" style={{ padding: '32px' }}>
+    <div className="animate-fade-up p-5 md:p-8">
 
       {/* Header */}
-      <div style={{ marginBottom: '32px' }}>
-        <div style={{
-          fontFamily:    'var(--font-mono)',
-          fontSize:      '10px',
-          color:         'var(--text-muted)',
-          letterSpacing: '0.15em',
-          marginBottom:  '6px',
-        }}>
+      <div className="mb-8">
+        <Typography variant="caption" className="mb-1.5 block">
           HISTORICAL DATA
-        </div>
-        <h1 style={{
-          fontFamily: 'var(--font-mono)',
-          fontSize:   '24px',
-          fontWeight: 600,
-          color:      'var(--text-primary)',
-          margin:     0,
-        }}>
+        </Typography>
+        <Typography variant="h1">
           History
-        </h1>
+        </Typography>
       </div>
 
-      {/* Controls row */}
-      <div style={{
-        display:     'flex',
-        gap:         '16px',
-        marginBottom:'24px',
-        flexWrap:    'wrap',
-        alignItems:  'flex-end',
-      }}>
+      {/* Controls row - Responsif: Stack di mobile, sebaris di MD */}
+      <div className="mb-6 flex flex-col items-start gap-4 md:flex-row md:flex-wrap md:items-end md:gap-4">
 
         {/* Device selector */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          <label style={{
-            fontFamily:    'var(--font-mono)',
-            fontSize:      '10px',
-            color:         'var(--text-muted)',
-            letterSpacing: '0.12em',
-          }}>
+        <div className="flex w-full flex-col gap-1 md:w-auto">
+          <Typography variant="caption" as="label">
             DEVICE
-          </label>
+          </Typography>
           <select
             value={selectedDevice ?? ''}
             onChange={e => setSelectedDevice(e.target.value || null)}
-            style={{
-              background:  'var(--bg-surface)',
-              border:      '1px solid var(--border)',
-              color:       selectedDevice ? 'var(--text-primary)' : 'var(--text-muted)',
-              fontFamily:  'var(--font-mono)',
-              fontSize:    '12px',
-              padding:     '8px 12px',
-              outline:     'none',
-              cursor:      'pointer',
-              minWidth:    '220px',
-            }}
+            className={cn(
+              "min-w-full cursor-pointer border border-border-subtle bg-surface px-3 py-2 font-mono text-xs outline-none md:min-w-55",
+              selectedDevice ? "text-text-primary" : "text-text-muted"
+            )}
           >
             <option value="">— select device —</option>
             {devicesLoading && (
@@ -122,31 +94,21 @@ export default function History() {
         </div>
 
         {/* Time range */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          <label style={{
-            fontFamily:    'var(--font-mono)',
-            fontSize:      '10px',
-            color:         'var(--text-muted)',
-            letterSpacing: '0.12em',
-          }}>
+        <div className="flex w-full flex-col gap-1 md:w-auto">
+          <Typography variant="caption" as="label">
             TIME RANGE
-          </label>
-          <div style={{ display: 'flex', gap: '1px' }}>
+          </Typography>
+          <div className="flex border border-border-subtle bg-border-subtle gap-px">
             {RANGES.map(({ label }) => (
               <button
                 key={label}
                 onClick={() => setActiveRange(label)}
-                style={{
-                  padding:     '8px 14px',
-                  fontFamily:  'var(--font-mono)',
-                  fontSize:    '11px',
-                  fontWeight:  500,
-                  border:      '1px solid var(--border)',
-                  background:  activeRange === label ? 'var(--accent)' : 'var(--bg-surface)',
-                  color:       activeRange === label ? '#000' : 'var(--text-secondary)',
-                  cursor:      'pointer',
-                  transition:  'all 0.15s ease',
-                }}
+                className={cn(
+                  "flex-1 px-3.5 py-2 font-mono text-[11px] font-medium transition-colors md:flex-none",
+                  activeRange === label 
+                    ? "bg-accent text-black" 
+                    : "bg-surface text-text-secondary hover:text-text-primary"
+                )}
               >
                 {label}
               </button>
@@ -155,78 +117,55 @@ export default function History() {
         </div>
 
         {/* Valid only toggle */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          <label style={{
-            fontFamily:    'var(--font-mono)',
-            fontSize:      '10px',
-            color:         'var(--text-muted)',
-            letterSpacing: '0.12em',
-          }}>
+        <div className="flex w-full flex-col gap-1 md:w-auto">
+          <Typography variant="caption" as="label">
             FILTER
-          </label>
+          </Typography>
           <button
             onClick={() => setValidOnly(v => !v)}
-            style={{
-              padding:     '8px 14px',
-              fontFamily:  'var(--font-mono)',
-              fontSize:    '11px',
-              border:      `1px solid ${validOnly ? 'var(--border-green)' : 'var(--border)'}`,
-              background:  validOnly ? 'var(--bg-green)' : 'var(--bg-surface)',
-              color:       validOnly ? 'var(--green)' : 'var(--text-muted)',
-              cursor:      'pointer',
-              transition:  'all 0.15s ease',
-              letterSpacing: '0.08em',
-            }}
+            className={cn(
+              "w-full border px-3.5 py-2 font-mono text-[11px] tracking-widest transition-colors md:w-auto",
+              validOnly
+                ? "border-green-500/30 bg-green-500/10 text-green-500"
+                : "border-border-subtle bg-surface text-text-muted hover:text-text-primary"
+            )}
           >
             {validOnly ? '✓ VALID ONLY' : '  ALL DATA'}
           </button>
         </div>
 
-        {/* Refetch button — only visible when a device is selected */}
+        {/* Refetch button */}
         {selectedDevice && (
           <button
             onClick={refetch}
             disabled={loading}
-            style={{
-              padding:     '8px 14px',
-              fontFamily:  'var(--font-mono)',
-              fontSize:    '11px',
-              border:      '1px solid var(--border)',
-              background:  'var(--bg-surface)',
-              color:       loading ? 'var(--text-muted)' : 'var(--text-secondary)',
-              cursor:      loading ? 'not-allowed' : 'pointer',
-              letterSpacing: '0.08em',
-              alignSelf:   'flex-end',
-            }}
+            className={cn(
+              "w-full border border-border-subtle bg-surface px-3.5 py-2 font-mono text-[11px] tracking-widest transition-colors md:w-auto",
+              loading 
+                ? "cursor-not-allowed text-text-muted opacity-50" 
+                : "cursor-pointer text-text-secondary hover:bg-raised hover:text-text-primary"
+            )}
           >
             ↺ REFRESH
           </button>
         )}
-
-        {/* Export moved to separate page: /export */}
       </div>
 
       {/* Metric tabs */}
-      <div style={{ display: 'flex', gap: '1px', marginBottom: '0' }}>
+      <div className="flex flex-wrap gap-px border border-border-subtle bg-border-subtle mb-0">
         {METRICS.map(({ key, label, color }) => (
           <button
             key={key}
             onClick={() => setActiveMetric(key)}
+            className={cn(
+              "flex-1 px-4 py-2 font-mono text-[10px] tracking-widest transition-colors sm:flex-none border-b-2",
+              activeMetric === key 
+                ? "bg-raised" 
+                : "bg-surface border-transparent text-text-muted hover:bg-raised hover:text-text-primary"
+            )}
             style={{
-              padding:      '8px 20px',
-              fontFamily:   'var(--font-mono)',
-              fontSize:     '10px',
-              letterSpacing:'0.1em',
-              border:       '1px solid var(--border)',
-              borderBottom: activeMetric === key
-                ? `2px solid ${color}`
-                : '1px solid var(--border)',
-              background:   activeMetric === key
-                ? 'var(--bg-raised)'
-                : 'var(--bg-surface)',
-              color:        activeMetric === key ? color : 'var(--text-muted)',
-              cursor:       'pointer',
-              transition:   'all 0.15s ease',
+              borderBottomColor: activeMetric === key ? color : 'transparent',
+              color: activeMetric === key ? color : undefined
             }}
           >
             {label}
@@ -236,32 +175,11 @@ export default function History() {
 
       {/* Error banner */}
       {error && (
-        <div style={{
-          background:   'rgba(239,68,68,0.1)',
-          border:       '1px solid rgba(239,68,68,0.2)',
-          color:        'var(--red)',
-          padding:      '12px 16px',
-          fontFamily:   'var(--font-mono)',
-          fontSize:     '11px',
-          marginTop:    '1px',
-          marginBottom: '0',
-          display:      'flex',
-          justifyContent: 'space-between',
-          alignItems:   'center',
-        }}>
+        <div className="mt-px flex items-center justify-between border border-red-500/20 bg-red-500/10 px-4 py-3 font-mono text-[11px] text-red-500">
           <span>⚠ {error}</span>
           <button
             onClick={refetch}
-            style={{
-              background:  'var(--red)',
-              border:      'none',
-              color:       '#fff',
-              padding:     '4px 10px',
-              fontFamily:  'var(--font-mono)',
-              fontSize:    '10px',
-              cursor:      'pointer',
-              letterSpacing: '0.08em',
-            }}
+            className="cursor-pointer border-none bg-red-500 px-2.5 py-1 font-mono text-[10px] tracking-widest text-white transition-opacity hover:opacity-80"
           >
             RETRY
           </button>
@@ -277,14 +195,8 @@ export default function History() {
         idle={idle}
       />
 
-      {/* Stats row */}
-      <div style={{
-        display:    'grid',
-        gridTemplateColumns: 'repeat(4, 1fr)',
-        gap:        '1px',
-        marginTop:  '1px',
-        background: 'var(--border)'
-      }}>
+      {/* Stats row - Grid responsif (2 kolom di mobile, 4 kolom di desktop) */}
+      <div className="mt-px grid grid-cols-2 gap-px border border-border-subtle bg-border-subtle md:grid-cols-4">
         {[
           {
             label: 'MIN',
@@ -307,44 +219,23 @@ export default function History() {
             color: stats.count > 0 ? 'var(--text-primary)' : undefined,
           },
         ].map(({ label, value, color }) => (
-          <div key={label} style={{
-            background: 'var(--bg-surface)',
-            padding:    '14px 20px',
-          }}>
-            <div style={{
-              fontFamily:    'var(--font-mono)',
-              fontSize:      '10px',
-              color:         'var(--text-muted)',
-              letterSpacing: '0.12em',
-              marginBottom:  '6px',
-            }}>
+          <div key={label} className="bg-surface px-3 py-2.5 md:px-5 md:py-4">
+            <Typography variant="caption" className="mb-1.5 block">
               {label}
-            </div>
-            <div style={{
-              fontFamily: 'var(--font-mono)',
-              fontSize:   '20px',
-              fontWeight: 500,
-              color:      color ?? 'var(--text-muted)'
-            }}>
+            </Typography>
+            <div
+              className="justify-self-center md:justify-self-end font-mono text-xl font-medium md:text-2xl"
+              style={{ color: color ?? 'var(--text-muted)' }}
+            >
               {value}
             </div>
           </div>
         ))}
       </div>
 
-      {/* Idle state — no device selected */}
+      {/* Idle state */}
       {!selectedDevice && (
-        <div style={{
-          marginTop:      '24px',
-          padding:        '24px',
-          textAlign:      'center',
-          fontFamily:     'var(--font-mono)',
-          fontSize:       '11px',
-          color:          'var(--text-muted)',
-          letterSpacing:  '0.08em',
-          border:         '1px solid var(--border)',
-          background:     'var(--bg-surface)'
-        }}>
+        <div className="mt-6 border border-border-subtle bg-surface p-6 text-center font-mono text-[11px] tracking-widest text-text-muted">
           SELECT A DEVICE ABOVE TO LOAD HISTORICAL DATA
         </div>
       )}
