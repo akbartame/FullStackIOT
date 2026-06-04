@@ -5,6 +5,7 @@ const NAV_ITEMS = [
   { to: '/',        label: 'DASHBOARD', icon: '⬡' },
   { to: '/history', label: 'HISTORY',   icon: '◈' },
   { to: '/devices', label: 'DEVICES',   icon: '◎' },
+  { to: '/export',  label: 'EXPORT',    icon: '↓' },
 ]
 
 export default function Layout() {

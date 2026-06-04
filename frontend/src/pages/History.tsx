@@ -1,6 +1,5 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo } from 'react'
 import { useHistory, computeStats, toChartData, type MetricKey } from '../hooks/useHistory'
-import { getSensorHistory } from '../api'
 import { SensorChart } from '../components/SensorChart'
 import { useDevices } from '../hooks/useDevices'
 
@@ -44,102 +43,6 @@ export default function History() {
     rangeSeconds,
     validOnly,
   })
-    
-  // CSV Exports
-  const THIRTY_DAYS_S = 30 * 24 * 3600
-  const CSV_LIMIT     = 10_000
-  const CSV_AFFIX_NAME= 'FSIOT_HISTORY'
-
-  const [exporting, setExporting] = useState(false)
-  const [exportError, setExportError] = useState<string | null>(null)
-
-  const CSV_HEADERS = [
-    'device_id',
-    'received_at_iso',
-    'received_at_unix',
-    'temperature_c',
-    'humidity',
-    'gas_ppm',
-    'mq2_voltage_v',
-    'mq2_rs_kohm',
-    'mq2_ratio',
-    'is_valid',
-    'device_uptime_ms',
-  ]
-
-  const handleExportAll = useCallback(async () => {
-    if (exporting || devices.length === 0) return
-    setExporting(true)
-    setExportError(null)
-
-    const nowSeconds = Math.floor(Date.now() / 1000)
-    const fromSeconds = nowSeconds - THIRTY_DAYS_S
-
-    try {
-      const results = await Promise.all(
-        devices.map(d =>
-          getSensorHistory({
-            deviceId:  d.device_id,
-            from:      fromSeconds,
-            to:        nowSeconds,
-            limit:     CSV_LIMIT,
-            validOnly: false,
-          }).then(rows => rows)
-        )
-      )
-
-      const allRows = results.flat()
-
-      if (allRows.length === 0) { 
-        setExportError('No data available for last 30 days.')
-        setExporting(false)
-        return
-      }
-
-      // build CSV content
-      const escape = (v: unknown) => {
-        if (v === null || v === undefined) return ''
-        const s = String(v)
-        return s.includes(',') || s.includes('"') || s.includes('\n')
-          ? `"${s.replace(/"/g, '""')}"`
-          : s
-      }
-
-      const lines: string[] = [CSV_HEADERS.join(',')]
-      for (const row of allRows) {
-        lines.push([
-          escape(row.device_id),
-          escape(new Date(row.received_at * 1000).toISOString()),
-          escape(row.received_at),
-          escape(row.temperature_c),
-          escape(row.humidity),
-          escape(row.gas_ppm),
-          escape(row.mq2_voltage_v),
-          escape(row.mq2_rs_kohm),
-          escape(row.mq2_ratio),
-          escape(row.is_valid),
-          escape(row.device_uptime_ms),
-        ].join(','))
-
-      }
-
-      const csvContent = lines.join('\n')
-      const blob = new Blob([csvContent], { type: 'text/csv' })
-      const url = URL.createObjectURL(blob)
-      const ts = new Date().toISOString().slice(0,16).replace(/[:T]/g, '-')
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `${CSV_AFFIX_NAME}_${ts}.csv`
-      a.click()
-      URL.revokeObjectURL(url)
-    } 
-    catch (err) {
-      setExportError(err instanceof Error ? err.message : 'Export failed.')
-    }
-    finally {
-      setExporting(false)
-    }
-  }, [devices, exporting])
 
   // Derived chart data and stats
   const chartData = useMemo(() => toChartData(readings, activeMetric), [readings, activeMetric])
@@ -267,8 +170,8 @@ export default function History() {
               padding:     '8px 14px',
               fontFamily:  'var(--font-mono)',
               fontSize:    '11px',
-              border:      `1px solid ${validOnly ? 'rgba(34,197,94,0.4)' : 'var(--border)'}`,
-              background:  validOnly ? 'rgba(34,197,94,0.08)' : 'var(--bg-surface)',
+              border:      `1px solid ${validOnly ? 'var(--border-green)' : 'var(--border)'}`,
+              background:  validOnly ? 'var(--bg-green)' : 'var(--bg-surface)',
               color:       validOnly ? 'var(--green)' : 'var(--text-muted)',
               cursor:      'pointer',
               transition:  'all 0.15s ease',
@@ -300,47 +203,7 @@ export default function History() {
           </button>
         )}
 
-        {/* Export CSV button — always visible, disabled until devices load */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          <label style={{
-            fontFamily:    'var(--font-mono)',
-            fontSize:      '10px',
-            color:         'var(--text-muted)',
-            letterSpacing: '0.12em',
-          }}>
-            EXPORT
-          </label>
-          <button
-            onClick={handleExportAll}
-            disabled={exporting || devices.length === 0}
-            title={devices.length === 0 ? 'No devices available' : 'Export all devices, last 30 days'}
-            style={{
-              padding:      '8px 14px',
-              fontFamily:   'var(--font-mono)',
-              fontSize:     '11px',
-              letterSpacing:'0.08em',
-              border:       `1px solid ${exporting ? 'var(--border)' : 'rgba(245,166,35,0.4)'}`,
-              background:   exporting ? 'var(--bg-surface)' : 'rgba(245,166,35,0.06)',
-              color:        exporting || devices.length === 0 ? 'var(--text-muted)' : 'var(--accent)',
-              cursor:       exporting || devices.length === 0 ? 'not-allowed' : 'pointer',
-              transition:   'all 0.15s ease',
-              whiteSpace:   'nowrap',
-            }}
-          >
-            {exporting ? '⌛EXPORTING...' : '↓ CSV ALL 30D'}
-          </button>
-          {exportError && (
-            <div style={{
-              fontFamily: 'var(--font-mono)',
-              color: 'var(--red)',
-              fontSize: '10px',
-              marginTop: '2px',
-              maxWidth: '200px',
-            }}>
-              ‼ {exportError}
-            </div>
-          )}
-        </div>
+        {/* Export moved to separate page: /export */}
       </div>
 
       {/* Metric tabs */}
@@ -420,7 +283,7 @@ export default function History() {
         gridTemplateColumns: 'repeat(4, 1fr)',
         gap:        '1px',
         marginTop:  '1px',
-        background: 'var(--border)',
+        background: 'var(--border)'
       }}>
         {[
           {
@@ -461,7 +324,7 @@ export default function History() {
               fontFamily: 'var(--font-mono)',
               fontSize:   '20px',
               fontWeight: 500,
-              color:      color ?? 'var(--text-muted)',
+              color:      color ?? 'var(--text-muted)'
             }}>
               {value}
             </div>
@@ -480,7 +343,7 @@ export default function History() {
           color:          'var(--text-muted)',
           letterSpacing:  '0.08em',
           border:         '1px solid var(--border)',
-          background:     'var(--bg-surface)',
+          background:     'var(--bg-surface)'
         }}>
           SELECT A DEVICE ABOVE TO LOAD HISTORICAL DATA
         </div>

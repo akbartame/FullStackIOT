@@ -81,6 +81,26 @@ export const getDevices = async (): Promise<Device[]> => {
 }
 
 /**
+ * POST /export/raw
+ * Download raw sensor export as ZIP blob
+ */
+export const exportRawDataAPI = async (
+  deviceIds: string[],
+  startTime: number,
+  endTime: number
+): Promise<Blob> => {
+  const response = await apiClient.post('/api/export/raw', {
+    deviceIds,
+    startTime,
+    endTime,
+  }, {
+    responseType: 'blob',
+  })
+
+  return response.data
+}
+
+/**
  * ============================================================================
  * SENSORS API
  * ============================================================================

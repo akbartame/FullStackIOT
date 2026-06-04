@@ -12,7 +12,9 @@
   --text-muted: #4a4a60;
   --accent: #f5a623;
   --accent-dim: #b87a1a;
-  --green: #22c55e;
+  --green: hsl(142, 71%, 45%);
+  --bg-green: hsl(142, 71%, 5%);
+  --border-green: hsl(142, 71%, 25%);
   --red: #ef4444;
   --yellow: #eab308;
   --font-mono: 'IBM Plex Mono', monospace;
@@ -34,6 +36,13 @@ body {
   color: var(--text-primary);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+}
+
+.label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-muted);
+  letter-spacing: 0.12em;
 }
 
 /* Scrollbar */
@@ -69,4 +78,8 @@ body {
 
 .pulse {
   animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.datetime-input {
+  color-scheme: dark;
 }
