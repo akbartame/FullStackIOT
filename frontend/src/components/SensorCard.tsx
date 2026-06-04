@@ -1,22 +1,17 @@
-import type { CSSProperties } from 'react'
 import type { SensorReading } from '../api'
 import { DeviceStatusBadge } from './DeviceStatusBadge'
 import { getDeviceStatus, getSensorHealth } from '../hooks/useLatest'
 import { getCurrentTimeSeconds, secondsToDate } from '../api'
 import { TEMP_MIN_C, TEMP_MAX_C, HUMIDITY_MIN, HUMIDITY_MAX, GAS_PPM_WARNING } from '../constant'
+import { cn } from '../utils/cn'
+import { Typography } from './Typography'
 
 export interface SensorCardProps {
   reading: SensorReading
   className?: string
-  style?: CSSProperties
 }
 
-/**
- * Card displaying a single sensor reading from a device
- * Shows device ID, status, and key sensor metrics
- * Color-codes values based on thresholds
- */
-export const SensorCard = ({ reading, className = '', style = {} }: SensorCardProps) => {
+export const SensorCard = ({ reading, className = '' }: SensorCardProps) => {
   const deviceStatus = getDeviceStatus(reading.received_at)
   const sensorHealth = getSensorHealth(reading.is_valid)
   const readingAge = getCurrentTimeSeconds() - reading.received_at
@@ -27,231 +22,98 @@ export const SensorCard = ({ reading, className = '', style = {} }: SensorCardPr
     second: '2-digit',
   })
 
-  // Color temperature based on range
-  const getTempColor = (temp: number | null): string => {
-    if (temp === null) return 'var(--text-muted)'
-    if (temp < TEMP_MIN_C || temp > TEMP_MAX_C) return 'var(--red)'
-    if (temp < TEMP_MIN_C + 5 || temp > TEMP_MAX_C - 5) return 'var(--yellow)'
-    return 'var(--green)'
+  // Logika diubah: Bukan me-return string warna mentah, tapi me-return nama class Tailwind
+  const getTempColorClass = (temp: number | null): string => {
+    if (temp === null) return 'text-text-muted'
+    if (temp < TEMP_MIN_C || temp > TEMP_MAX_C) return 'text-red-500'
+    if (temp < TEMP_MIN_C + 5 || temp > TEMP_MAX_C - 5) return 'text-yellow-500'
+    return 'text-green-500'
   }
 
-  // Color humidity based on range
-  const getHumidityColor = (humidity: number | null): string => {
-    if (humidity === null) return 'var(--text-muted)'
-    if (humidity < HUMIDITY_MIN || humidity > HUMIDITY_MAX) return 'var(--red)'
-    if (humidity < HUMIDITY_MIN + 10 || humidity > HUMIDITY_MAX - 10) return 'var(--yellow)'
-    return 'var(--green)'
+  const getHumidityColorClass = (humidity: number | null): string => {
+    if (humidity === null) return 'text-text-muted'
+    if (humidity < HUMIDITY_MIN || humidity > HUMIDITY_MAX) return 'text-red-500'
+    if (humidity < HUMIDITY_MIN + 10 || humidity > HUMIDITY_MAX - 10) return 'text-yellow-500'
+    return 'text-green-500'
   }
 
-  // Color gas PPM based on threshold
-  const getGasColor = (ppm: number | null): string => {
-    if (ppm === null) return 'var(--text-muted)'
-    if (ppm > GAS_PPM_WARNING) return 'var(--red)'
-    if (ppm > GAS_PPM_WARNING / 2) return 'var(--yellow)'
-    return 'var(--green)'
+  const getGasColorClass = (ppm: number | null): string => {
+    if (ppm === null) return 'text-text-muted'
+    if (ppm > GAS_PPM_WARNING) return 'text-red-500'
+    if (ppm > GAS_PPM_WARNING / 2) return 'text-yellow-500'
+    return 'text-green-500'
   }
 
   return (
-    <div
-      className={className}
-      style={{
-        background: 'var(--bg-surface)',
-        border: '1px solid var(--border)',
-        borderRadius: '4px',
-        padding: '20px',
-        ...style,
-      }}
-    >
+    <div className={cn("rounded border border-border-subtle bg-surface p-5", className)}>
+      
       {/* Header: Device ID + Status Badge */}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'flex-start',
-          marginBottom: '20px',
-        }}
-      >
+      <div className="mb-5 flex items-start justify-between">
         <div>
-          <div
-            style={{
-              fontFamily: 'var(--font-mono)',
-              fontSize: '10px',
-              color: 'var(--text-muted)',
-              letterSpacing: '0.08em',
-              marginBottom: '4px',
-            }}
-          >
-            DEVICE ID
-          </div>
-          <div
-            style={{
-              fontFamily: 'var(--font-mono)',
-              fontSize: '14px',
-              fontWeight: 600,
-              color: 'var(--text-primary)',
-              marginBottom: '4px',
-            }}
-          >
+          <Typography variant="caption" className="mb-1 block">DEVICE ID</Typography>
+          <div className="mb-1 font-mono text-sm font-semibold text-text-primary">
             {reading.device_id}
           </div>
-          <div
-            style={{
-              fontFamily: 'var(--font-mono)',
-              fontSize: '9px',
-              color: 'var(--text-muted)',
-            }}
-          >
+          <Typography variant="caption" className="normal-case">
             {readingTimeStr} ({readingAge}s ago)
-          </div>
+          </Typography>
         </div>
         <DeviceStatusBadge status={deviceStatus} />
       </div>
 
       {/* Sensor Health Indicator */}
       <div
-        style={{
-          marginBottom: '16px',
-          padding: '8px 12px',
-          background: sensorHealth === 'clean' ? 'rgba(34, 197, 94, 0.05)' : 'rgba(239, 68, 68, 0.05)',
-          border: `1px solid ${sensorHealth === 'clean' ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)'}`,
-          borderRadius: '2px',
-        }}
+        className={cn(
+          "mb-4 rounded-sm border px-3 py-2",
+          sensorHealth === 'clean' 
+            ? "border-green-500/20 bg-green-500/5" 
+            : "border-red-500/20 bg-red-500/5"
+        )}
       >
         <div
-          style={{
-            fontFamily: 'var(--font-mono)',
-            fontSize: '9px',
-            color: sensorHealth === 'clean' ? 'var(--green)' : 'var(--red)',
-            fontWeight: 600,
-            textTransform: 'uppercase',
-            letterSpacing: '0.05em',
-          }}
+          className={cn(
+            "font-mono text-[9px] font-semibold uppercase tracking-widest",
+            sensorHealth === 'clean' ? "text-green-500" : "text-red-500"
+          )}
         >
           {sensorHealth === 'clean' ? '✓ VALID DATA' : '⚠ FLAGGED DATA'}
         </div>
       </div>
 
       {/* Sensor Readings Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+      <div className="mb-3 grid grid-cols-2 gap-3">
         {/* Temperature */}
-        <div
-          style={{
-            padding: '12px',
-            border: '1px solid var(--border)',
-            borderRadius: '2px',
-          }}
-        >
-          <div
-            style={{
-              fontFamily: 'var(--font-mono)',
-              fontSize: '9px',
-              color: 'var(--text-muted)',
-              letterSpacing: '0.08em',
-              marginBottom: '4px',
-            }}
-          >
-            TEMPERATURE
-          </div>
-          <div
-            style={{
-              fontFamily: 'var(--font-mono)',
-              fontSize: '20px',
-              fontWeight: 600,
-              color: getTempColor(reading.temperature_c),
-            }}
-          >
+        <div className="rounded-sm border border-border-subtle p-3">
+          <Typography variant="caption" className="mb-1 block">TEMPERATURE</Typography>
+          <div className={cn("font-mono text-xl font-semibold", getTempColorClass(reading.temperature_c))}>
             {reading.temperature_c != null ? reading.temperature_c.toFixed(1) : '-'}°C
           </div>
         </div>
 
         {/* Humidity */}
-        <div
-          style={{
-            padding: '12px',
-            border: '1px solid var(--border)',
-            borderRadius: '2px',
-          }}
-        >
-          <div
-            style={{
-              fontFamily: 'var(--font-mono)',
-              fontSize: '9px',
-              color: 'var(--text-muted)',
-              letterSpacing: '0.08em',
-              marginBottom: '4px',
-            }}
-          >
-            HUMIDITY
-          </div>
-          <div
-            style={{
-              fontFamily: 'var(--font-mono)',
-              fontSize: '20px',
-              fontWeight: 600,
-              color: getHumidityColor(reading.humidity),
-            }}
-          >
+        <div className="rounded-sm border border-border-subtle p-3">
+          <Typography variant="caption" className="mb-1 block">HUMIDITY</Typography>
+          <div className={cn("font-mono text-xl font-semibold", getHumidityColorClass(reading.humidity))}>
             {reading.humidity != null ? reading.humidity.toFixed(1) : '-'}%
           </div>
         </div>
 
         {/* Gas PPM */}
-        <div
-          style={{
-            padding: '12px',
-            border: '1px solid var(--border)',
-            borderRadius: '2px',
-          }}
-        >
-          <div
-            style={{
-              fontFamily: 'var(--font-mono)',
-              fontSize: '9px',
-              color: 'var(--text-muted)',
-              letterSpacing: '0.08em',
-              marginBottom: '4px',
-            }}
-          >
-            GAS PPM
-          </div>
-          <div
-            style={{
-              fontFamily: 'var(--font-mono)',
-              fontSize: '20px',
-              fontWeight: 600,
-              color: getGasColor(reading.gas_ppm),
-            }}
-          >
+        <div className="rounded-sm border border-border-subtle p-3">
+          <Typography variant="caption" className="mb-1 block">GAS PPM</Typography>
+          <div className={cn("font-mono text-xl font-semibold", getGasColorClass(reading.gas_ppm))}>
             {reading.gas_ppm != null ? reading.gas_ppm.toFixed(1) : '-'}
           </div>
         </div>
 
         {/* MQ2 Ratio */}
-        <div
-          style={{
-            padding: '12px',
-            border: '1px solid var(--border)',
-            borderRadius: '2px',
-          }}
-        >
+        <div className="rounded-sm border border-border-subtle p-3">
+          <Typography variant="caption" className="mb-1 block">MQ2 RATIO</Typography>
           <div
-            style={{
-              fontFamily: 'var(--font-mono)',
-              fontSize: '9px',
-              color: 'var(--text-muted)',
-              letterSpacing: '0.08em',
-              marginBottom: '4px',
-            }}
-          >
-            MQ2 RATIO
-          </div>
-          <div
-            style={{
-              fontFamily: 'var(--font-mono)',
-              fontSize: '20px',
-              fontWeight: 600,
-              color: reading.mq2_ratio != null && reading.mq2_ratio > 1.2 ? 'var(--green)' : 'var(--yellow)',
-            }}
+            className={cn(
+              "font-mono text-xl font-semibold",
+              reading.mq2_ratio != null && reading.mq2_ratio > 1.2 ? "text-green-500" : "text-yellow-500"
+            )}
           >
             {reading.mq2_ratio != null ? reading.mq2_ratio.toFixed(2) : '-'}
           </div>
@@ -259,31 +121,16 @@ export const SensorCard = ({ reading, className = '', style = {} }: SensorCardPr
       </div>
 
       {/* Footer: Metadata */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
-          gap: '12px',
-          fontSize: '10px',
-          color: 'var(--text-muted)',
-          fontFamily: 'var(--font-mono)',
-          paddingTop: '12px',
-          borderTop: '1px solid var(--border)',
-        }}
-      >
+      <div className="grid grid-cols-2 gap-3 border-t border-border-subtle pt-3 text-[10px]">
         <div>
-          <span style={{ fontSize: '9px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-            UPTIME
-          </span>
-          <div style={{ marginTop: '2px', color: 'var(--text-secondary)' }}>
+          <span className="font-mono text-[9px] uppercase tracking-widest text-text-muted">UPTIME</span>
+          <div className="mt-0.5 font-mono text-text-secondary">
             {reading.device_uptime_ms != null ? `${(reading.device_uptime_ms / 1000 / 60 / 60).toFixed(2)}h` : '-'}
           </div>
         </div>
         <div>
-          <span style={{ fontSize: '9px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-            MQ2 RS
-          </span>
-          <div style={{ marginTop: '2px', color: 'var(--text-secondary)' }}>
+          <span className="font-mono text-[9px] uppercase tracking-widest text-text-muted">MQ2 RS</span>
+          <div className="mt-0.5 font-mono text-text-secondary">
             {reading.mq2_rs_kohm != null ? reading.mq2_rs_kohm.toFixed(1) : '-'}kΩ
           </div>
         </div>
@@ -291,5 +138,3 @@ export const SensorCard = ({ reading, className = '', style = {} }: SensorCardPr
     </div>
   )
 }
-
-export default SensorCard

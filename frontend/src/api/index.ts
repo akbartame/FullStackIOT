@@ -37,9 +37,11 @@ export interface HistoryQueryParams {
 }
 
 export interface HealthStatus {
-  status: 'ok' | 'error'
-  timestamp: number
-  details?: Record<string, unknown>
+  status: 'ok' | 'degraded' | 'error'
+  checks: {
+    mqtt: 'ok' | 'disconnected' | 'error' | 'unreachable'
+    db: 'ok' | 'error' | 'unreachable'
+  }
 }
 
 export interface WiFiCommandPayload {

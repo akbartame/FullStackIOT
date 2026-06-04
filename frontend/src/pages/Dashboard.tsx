@@ -1,11 +1,12 @@
 import { useLatest, getDeviceStatus } from '../hooks/useLatest'
 import { SensorCard } from '../components/SensorCard'
 import { getCurrentTimeSeconds } from '../api'
+import { Typography } from '../components/Typography'
 
 export default function Dashboard() {
   const { readings, loading, error, refetch } = useLatest()
 
-  // Calculate summary stats
+  // Kalkulasi statistik
   const totalReadings = readings.length
   const onlineReadings = readings.filter(
     (r) => getDeviceStatus(r.received_at) === 'online'
@@ -16,155 +17,81 @@ export default function Dashboard() {
       : null
 
   return (
-    <div className="page-enter" style={{ padding: '32px' }}>
-
+    // Mengganti class "page-enter" dengan utility animasi dari @theme di index.css
+    <div className="p-5 sm:p-8 animate-fade-up">
+      
       {/* Header */}
-      <div style={{ marginBottom: '32px' }}>
-        <div style={{
-          fontFamily: 'var(--font-mono)',
-          fontSize: '10px',
-          color: 'var(--text-muted)',
-          letterSpacing: '0.15em',
-          marginBottom: '6px',
-        }}>
+      <div className="mb-8">
+        <Typography variant="caption" className="mb-1.5 block">
           LIVE MONITOR
-        </div>
-        <h1 style={{
-          fontFamily: 'var(--font-mono)',
-          fontSize: '24px',
-          fontWeight: 600,
-          color: 'var(--text-primary)',
-          margin: 0,
-        }}>
+        </Typography>
+        <Typography variant="h1">
           Dashboard
-        </h1>
+        </Typography>
       </div>
 
-      {/* Summary bar */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(3, 1fr)',
-        gap: '12px',
-        marginBottom: '32px',
-      }}>
+      {/* Summary bar - Responsif: 1 kolom di HP, 3 kolom di sm (tablet/desktop) */}
+      <div className="mb-8 grid grid-cols-1 gap-2 sm:grid-cols-3">
         {[
           { label: 'DEVICES', value: loading ? '—' : totalReadings, unit: 'total' },
           { label: 'ONLINE',  value: loading ? '—' : onlineReadings, unit: 'active' },
           { label: 'LAST UPDATE', value: loading ? '—' : oldestReading ? `${oldestReading}s` : '—', unit: 'ago' },
         ].map(({ label, value, unit }) => (
-          <div key={label} style={{
-            background: 'var(--bg-surface)',
-            border: '1px solid var(--border)',
-            padding: '16px 20px',
-          }}>
-            <div style={{
-              fontFamily: 'var(--font-mono)',
-              fontSize: '10px',
-              color: 'var(--text-muted)',
-              letterSpacing: '0.12em',
-              marginBottom: '8px',
-            }}>{label}</div>
-            <div style={{
-              fontFamily: 'var(--font-mono)',
-              fontSize: '28px',
-              fontWeight: 600,
-              color: 'var(--accent)',
-              lineHeight: 1,
-            }}>{value}</div>
-            <div style={{
-              fontFamily: 'var(--font-mono)',
-              fontSize: '10px',
-              color: 'var(--text-muted)',
-              marginTop: '4px',
-            }}>{unit}</div>
+          <div key={label} className="border border-border-subtle bg-surface p-4 sm:p-5">
+            <Typography variant="caption" className="mb-2 block">
+              {label}
+            </Typography>
+            <div className="font-mono text-2xl font-semibold leading-none text-accent sm:text-3xl">
+              {value}
+            </div>
+            <div className="mt-1 font-mono text-[10px] text-text-muted">
+              {unit}
+            </div>
           </div>
         ))}
       </div>
 
-      {/* Device cards placeholder */}
-      <div style={{
-        fontFamily: 'var(--font-mono)',
-        fontSize: '10px',
-        color: 'var(--text-muted)',
-        letterSpacing: '0.12em',
-        marginBottom: '16px',
-      }}>
+      <Typography variant="caption" className="mb-4 block">
         SENSOR READINGS
-      </div>
+      </Typography>
 
       {/* Error State */}
       {error && (
-        <div style={{
-          background: 'rgba(239, 68, 68, 0.1)',
-          border: '1px solid rgba(239, 68, 68, 0.2)',
-          color: 'var(--red)',
-          padding: '16px',
-          borderRadius: '4px',
-          marginBottom: '16px',
-          fontFamily: 'var(--font-mono)',
-          fontSize: '12px',
-        }}>
+        <div className="mb-4 rounded border border-red-500/20 bg-red-500/10 p-4 font-mono text-xs text-red-500">
           ⚠ {error}
           <button
             onClick={refetch}
-            style={{
-              marginLeft: '12px',
-              padding: '4px 8px',
-              background: 'var(--accent)',
-              color: 'var(--text-primary)',
-              border: 'none',
-              borderRadius: '2px',
-              cursor: 'pointer',
-              fontFamily: 'var(--font-mono)',
-              fontSize: '11px',
-            }}
+            className="ml-3 cursor-pointer rounded-sm border border-red-500 bg-red-500/20 px-2 py-1 font-mono text-[11px] text-text-primary transition-colors hover:text-red-500 hover:border-red-500/20 "
           >
             RETRY
           </button>
         </div>
       )}
 
-      {/* Loading State */}
+      {/* Loading State - Menggunakan animate-pulse bawaan Tailwind */}
       {loading && readings.length === 0 && (
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-          gap: '12px',
-        }}>
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
           {[1, 2, 3].map((i) => (
             <div
               key={i}
-              style={{
-                background: 'var(--bg-surface)',
-                border: '1px solid var(--border)',
-                padding: '20px',
-                animation: 'pulse 2s infinite',
-              }}
+              className="border border-border-subtle bg-surface p-5 animate-pulse"
             >
-              <div style={{ height: '200px', background: 'var(--border)', borderRadius: '2px' }} />
+              <div className="h-50 rounded-sm bg-border-subtle" />
             </div>
           ))}
         </div>
       )}
 
-      {/* Cards Grid */}
+      {/* Empty State */}
       {!loading && readings.length === 0 && (
-        <div style={{
-          padding: '32px',
-          textAlign: 'center',
-          color: 'var(--text-muted)',
-          fontFamily: 'var(--font-mono)',
-        }}>
+        <div className="p-8 text-center font-mono text-text-muted">
           No readings available. Backend may be offline or devices haven't reported yet.
         </div>
       )}
 
+      {/* Cards Grid */}
       {readings.length > 0 && (
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-          gap: '12px',
-        }}>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {readings.map((reading) => (
             <SensorCard key={reading.id} reading={reading} />
           ))}

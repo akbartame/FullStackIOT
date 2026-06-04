@@ -1,43 +1,28 @@
-import type { CSSProperties } from 'react'
+import { cn } from '../utils/cn'
 
 export interface DeviceStatusBadgeProps {
   status: 'online' | 'stale' | 'offline' | 'waiting'
   className?: string
-  style?: CSSProperties
 }
 
-/**
- * Small status badge showing device connection status
- * - ONLINE: bright green (< 15s since last reading)
- * - STALE: yellow (15-60s since last reading)
- * - OFFLINE: red (> 60s since last reading)
- * - WAITING: gray (initial load state)
- */
-export const DeviceStatusBadge = ({ status, className = '', style = {} }: DeviceStatusBadgeProps) => {
+export const DeviceStatusBadge = ({ status, className = '' }: DeviceStatusBadgeProps) => {
+  // Pemetaan class Tailwind untuk setiap status
   const statusConfig = {
     online: {
       label: 'ONLINE',
-      bg: 'rgba(34, 197, 94, 0.1)',
-      color: 'var(--green)',
-      border: 'rgba(34, 197, 94, 0.2)',
+      classes: 'bg-green-500/10 text-green-500 border-green-500/20',
     },
     stale: {
       label: 'STALE',
-      bg: 'rgba(234, 179, 8, 0.1)',
-      color: 'var(--yellow)',
-      border: 'rgba(234, 179, 8, 0.2)',
+      classes: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20',
     },
     offline: {
       label: 'OFFLINE',
-      bg: 'rgba(239, 68, 68, 0.1)',
-      color: 'var(--red)',
-      border: 'rgba(239, 68, 68, 0.2)',
+      classes: 'bg-red-500/10 text-red-500 border-red-500/20',
     },
     waiting: {
       label: 'WAITING',
-      bg: 'rgba(107, 114, 128, 0.1)',
-      color: 'var(--text-secondary)',
-      border: 'rgba(107, 114, 128, 0.2)',
+      classes: 'bg-text-secondary/10 text-text-secondary border-text-secondary/20',
     },
   }
 
@@ -45,25 +30,14 @@ export const DeviceStatusBadge = ({ status, className = '', style = {} }: Device
 
   return (
     <div
-      className={className}
-      style={{
-        fontFamily: 'var(--font-mono)',
-        fontSize: '10px',
-        fontWeight: 600,
-        padding: '3px 8px',
-        background: config.bg,
-        color: config.color,
-        border: `1px solid ${config.border}`,
-        borderRadius: '2px',
-        textTransform: 'uppercase',
-        letterSpacing: '0.05em',
-        display: 'inline-block',
-        ...style,
-      }}
+      className={cn(
+        "inline-block rounded-sm border px-2 py-0.75",
+        "font-mono text-[10px] font-semibold uppercase tracking-wider",
+        config.classes,
+        className
+      )}
     >
       {config.label}
     </div>
   )
 }
-
-export default DeviceStatusBadge
