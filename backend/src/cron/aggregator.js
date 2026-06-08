@@ -54,12 +54,20 @@ export function startAggregatorCron() {
                     );
                 }
             }
-
-            console.log(
+            if (devices.length > 0) {
+                console.log(
                 `[Cron] Agregasi 5m berhasil untuk bucket: ${new Date(
                     bucketTimestamp * 1000
-                ).toISOString()}`
-            );
+                    ).toISOString()}`
+                );
+            }
+            else {
+                console.log(
+                `[Cron] Tidak ada data pada bucket: ${new Date(
+                    bucketTimestamp * 1000
+                    ).toISOString()}`
+                );
+            }
         } catch (error) {
             console.error('[Cron Error] Gagal menjalankan agregasi:', error);
         }
