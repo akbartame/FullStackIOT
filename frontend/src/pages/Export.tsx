@@ -4,6 +4,7 @@ import { exportRawDataAPI } from '../api'
 import { triggerFileDownload } from '../utils/download'
 import { Typography } from '../components/Typography'
 import { cn } from '../utils/cn'
+import axios from 'axios'
 
 const pad2 = (v: number) => String(v).padStart(2, '0')
 const formatDateTimeLocal = (seconds: number) => {
@@ -58,9 +59,29 @@ export default function Export() {
     try {
       const blob = await exportRawDataAPI(selectedDevices, startTime, endTime)
       triggerFileDownload(blob, `fsiot_export_raw_${new Date().toISOString().replace(/[:.]/g, '-')}.zip`)
-    } catch (err) {
+    } catch (err : unknown) {
       console.error('Export failed', err)
-      setError(err instanceof Error ? err.message : 'Gagal mengekspor data.')
+      // Type Narrowing 1: Apakah ini error dari Axios?
+      if (axios.isAxiosError(err)) {
+        if (err.response?.data instanceof Blob && err.response.data.type === 'application/json') {
+          try {
+            const text = await err.response.data.text();
+            const jsonError = JSON.parse(text);
+            setError(jsonError.error || jsonError.message || 'Gagal mengekspor data.');
+          } catch {
+            setError('Gagal mengekspor data (Respons API tidak dapat dibaca).');
+          }
+        } else {
+          setError(err.message || 'Gagal mengekspor data dari server.');
+        }
+      } 
+      // Type Narrowing 2: Apakah ini error standar JavaScript?
+      else if (err instanceof Error) {
+        setError(err.message);
+      } 
+      else {
+        setError('Terjadi kesalahan yang tidak diketahui saat mengekspor data.');
+      }
     } finally {
       setIsExporting(false)
     }
