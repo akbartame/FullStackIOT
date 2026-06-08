@@ -35,7 +35,7 @@ export default function Export() {
   const isAllSelected = devices.length > 0 && selectedDevices.length === devices.length
 
   const applyPreset = (seconds: number) => {
-    setStartTime(prev => prev ? endTime - seconds : endTime - seconds)
+    setStartTime(endTime - seconds)
     setActivePreset(seconds)
   }
 
