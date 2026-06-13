@@ -79,6 +79,37 @@ export const SERVER = {
   bindAddr: process.env.API_BIND_ADDR || '0.0.0.0',
 };
 
+// ── API Key Authentication ────────────────────────────────
+// API_KEYS should be comma-separated list of valid keys
+// Example: .env line — API_KEYS=key1,key2,key3
+// Leave empty to disable authentication (NOT recommended for production)
+export const ALLOWED_API_KEYS = (() => {
+  const keysEnv = process.env.API_KEYS || '';
+  return keysEnv
+    .split(',')
+    .map(k => k.trim())
+    .filter(k => k.length > 0);
+})();
+
+const enableApiAuth = ALLOWED_API_KEYS.length > 0;
+
+if (!enableApiAuth && process.env.NODE_ENV === 'production') {
+  console.warn('[CONFIG] ⚠️  WARNING: API_KEYS not set. All endpoints are publicly accessible.');
+}
+
+// ── Rate Limiting ─────────────────────────────────────────
+// General rate limit: 100 requests per 60 seconds per IP
+// Export rate limit: 10 requests per hour per IP
+export const RATE_LIMIT_CONFIG = {
+  // General endpoint rate limit
+  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 60_000,        // 60 seconds
+  maxRequests: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100,      // 100 requests
+
+  // Export-specific stricter limit
+  exportWindowMs: parseInt(process.env.EXPORT_RATE_LIMIT_WINDOW_MS) || 3_600_000,  // 1 hour
+  exportMaxRequests: parseInt(process.env.EXPORT_RATE_LIMIT_MAX_REQUESTS) || 10,   // 10 exports
+};
+
 // ── Validation thresholds ─────────────────────────────────
 export const VALIDATION = {
   dht11InvalidValue: -999.0,

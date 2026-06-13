@@ -5,6 +5,8 @@ import { getMqttClient } from '../mqtt/client.js';
 import db from '../db/database.js';
 import { getDevices, getLatestReadings, getHistory } from '../db/readQueries.js';
 import { exportRawData, exportAggregatedCsv } from './export.js';
+import { authMiddleware, rateLimitMiddleware, exportRateLimitMiddleware } from './auth.js';
+import { ALLOWED_API_KEYS } from '../config/index.js';
 
 // ── Helpers ───────────────────────────────────────────────
 
@@ -35,10 +37,12 @@ export function createHttpServer(port = 3000) {
 
     app.use(morgan('combined'));
     app.use(express.json());
+
+    // ── CORS Middleware ───────────────────────────────────
     app.use((req, res, next) => {
         res.setHeader('Access-Control-Allow-Origin', '*');
         res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Accept');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Accept, X-API-Key');
 
         if (req.method === 'OPTIONS') {
             return res.status(204).send();
@@ -47,7 +51,20 @@ export function createHttpServer(port = 3000) {
         next();
     });
 
-    // ── Health ────────────────────────────────────────────
+    // ── RATE LIMITING (before auth) ───────────────────────
+    // Apply to all endpoints
+    app.use(rateLimitMiddleware);
+
+    // ── AUTHENTICATION ────────────────────────────────────
+    // Skip for health checks; all other endpoints require API key
+    if (ALLOWED_API_KEYS.length > 0) {
+        app.use(authMiddleware);
+        console.log('[API] API key authentication is ENABLED');
+    } else {
+        console.warn('[API] ⚠️  API key authentication is DISABLED. Set API_KEYS in .env for production.');
+    }
+
+    // ── Health (no auth required) ────────────────────────
 
     app.get('/health', (req, res) => {
         const checks = {};
@@ -71,6 +88,7 @@ export function createHttpServer(port = 3000) {
         return res.status(allOk ? 200 : 503).json({
             status: allOk ? 'ok' : 'degraded',
             checks,
+            timestamp: Date.now(),
         });
     });
 
@@ -190,7 +208,9 @@ export function createHttpServer(port = 3000) {
     // ── Export: Raw data ZIP ───────────────────────────────
     // POST /api/export/raw
     // Request body: { deviceIds: [...], startTime: <unix seconds>, endTime: <unix seconds> }
-    app.post('/api/export/raw', async (req, res) => {
+    // 
+    // Rate limited to 10 exports per hour per IP
+    app.post('/api/export/raw', exportRateLimitMiddleware, async (req, res) => {
         try {
             await exportRawData(req, res);
         } catch (err) {

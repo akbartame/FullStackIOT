@@ -3,6 +3,8 @@ import { format } from 'fast-csv';
 import db from '../db/database.js';
 
 const ROW_YIELD_INTERVAL = 500;
+const MAX_DEVICES_PER_EXPORT = 100;  // Prevent resource exhaustion
+const MAX_EXPORT_ROWS = 100_000;     // Prevent unbounded exports
 
 function yieldToEventLoop() {
     return new Promise((resolve) => setImmediate(resolve));
@@ -17,13 +19,36 @@ function validateTimestamp(value) {
     return Number.isFinite(numeric) && numeric >= 0 ? numeric : null;
 }
 
+function validateDeviceId(deviceId) {
+    if (typeof deviceId !== 'string') return null;
+    // Allow alphanumeric, underscore, hyphen only. Max 50 chars.
+    if (!/^[a-zA-Z0-9_-]{1,50}$/.test(deviceId)) return null;
+    return deviceId;
+}
+
 export async function exportRawData(req, res) {
     const { deviceIds, startTime, endTime } = req.body || {};
 
+    // Validate deviceIds array
     if (!Array.isArray(deviceIds) || deviceIds.length === 0) {
         return res.status(400).json({ error: 'deviceIds must be a non-empty array' });
     }
 
+    if (deviceIds.length > MAX_DEVICES_PER_EXPORT) {
+        return res.status(400).json({ 
+            error: `Maximum ${MAX_DEVICES_PER_EXPORT} devices per export. Got ${deviceIds.length}` 
+        });
+    }
+
+    // Validate and sanitize each device ID
+    const validatedDeviceIds = deviceIds.map(validateDeviceId);
+    if (validatedDeviceIds.some(id => id === null)) {
+        return res.status(400).json({ 
+            error: 'Invalid device ID format. Must be alphanumeric with underscore/hyphen ( "_" / "-" ), max 50 chars.' 
+        });
+    }
+
+    // Validate timestamps
     const from = validateTimestamp(startTime);
     const to = validateTimestamp(endTime);
 
@@ -36,6 +61,7 @@ export async function exportRawData(req, res) {
         FROM sensor_readings
         WHERE device_id = ? AND received_at >= ? AND received_at <= ?
         ORDER BY received_at ASC
+        LIMIT ?
     `);
 
     res.setHeader('Content-Type', 'application/zip');
@@ -53,22 +79,29 @@ export async function exportRawData(req, res) {
     archive.pipe(res);
 
     try {
-        for (const deviceId of deviceIds) {
+        let totalRows = 0;
+
+        for (const deviceId of validatedDeviceIds) {
             const safeName = sanitizeFileName(deviceId);
             const csvStream = format({ headers: true });
             archive.append(csvStream, { name: `${safeName}_raw.csv` });
 
             let rowCount = 0;
-            for (const row of stmt.iterate(deviceId, from, to)) {
+            for (const row of stmt.iterate(deviceId, from, to, MAX_EXPORT_ROWS)) {
                 csvStream.write(row);
                 rowCount += 1;
+                totalRows += 1;
 
                 if (rowCount % ROW_YIELD_INTERVAL === 0) {
                     await yieldToEventLoop();
                 }
             }
             csvStream.end();
+
+            console.log(`[Export Raw] Device ${deviceId}: ${rowCount} rows exported`);
         }
+
+        console.log(`[Export Raw] Total rows exported: ${totalRows}`);
 
         await new Promise((resolve, reject) => {
             archive.on('close', resolve);
@@ -96,8 +129,14 @@ export async function exportAggregatedCsv(req, res) {
     const year = parseInt(req.query.year, 10);
     const deviceId = req.query.deviceId;
 
-    if (!deviceId || Number.isNaN(month) || Number.isNaN(year)) {
-        return res.status(400).json({ error: 'deviceId, month, and year query parameters are required' });
+    // Validate device ID
+    const validatedDeviceId = validateDeviceId(deviceId);
+    if (!validatedDeviceId) {
+        return res.status(400).json({ error: 'Invalid deviceId format' });
+    }
+
+    if (Number.isNaN(month) || Number.isNaN(year)) {
+        return res.status(400).json({ error: 'month and year query parameters are required' });
     }
 
     if (month < 1 || month > 12 || year < 1970) {
@@ -119,7 +158,7 @@ export async function exportAggregatedCsv(req, res) {
         ORDER BY bucket_timestamp ASC
     `);
 
-    const safeName = sanitizeFileName(deviceId);
+    const safeName = sanitizeFileName(validatedDeviceId);
     res.setHeader('Content-Type', 'text/csv');
     res.setHeader('Content-Disposition', `attachment; filename="${safeName}_aggregated_${year}-${String(month).padStart(2, '0')}.csv"`);
 
@@ -136,7 +175,7 @@ export async function exportAggregatedCsv(req, res) {
 
     try {
         let rowCount = 0;
-        for (const row of stmt.iterate(deviceId, startTimestamp, endTimestamp)) {
+        for (const row of stmt.iterate(validatedDeviceId, startTimestamp, endTimestamp)) {
             csvStream.write(row);
             rowCount += 1;
 
