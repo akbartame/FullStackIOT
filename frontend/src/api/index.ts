@@ -59,12 +59,22 @@ export interface GenericCommandPayload {
  * ============================================================================
  */
 
+// Build headers with optional API key
+const defaultHeaders: Record<string, string> = {
+  'Content-Type': 'application/json',
+}
+
+// If VITE_API_KEY is set, include it in all requests
+const apiKey = import.meta.env.VITE_API_KEY;
+if (apiKey) {
+  defaultHeaders['X-API-Key'] = apiKey;
+  console.log('[API] Using API key authentication');
+}
+
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
   timeout: 10000,
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  headers: defaultHeaders,
 })
 
 /**
@@ -85,6 +95,9 @@ export const getDevices = async (): Promise<Device[]> => {
 /**
  * POST /export/raw
  * Download raw sensor export as ZIP blob
+ * 
+ * Rate limited to 10 exports per hour per IP.
+ * Returns 429 if limit exceeded.
  */
 export const exportRawDataAPI = async (
   deviceIds: string[],
@@ -205,6 +218,9 @@ export const sendCommand = async (
 /**
  * GET /health
  * Check backend server health status
+ * 
+ * Note: Health endpoint does NOT require API key authentication,
+ * allowing status checks from load balancers and monitoring tools.
  */
 export const getHealth = async (): Promise<HealthStatus> => {
   const { data } = await apiClient.get<HealthStatus>('/health')
@@ -245,7 +261,15 @@ export const dateToSeconds = (date: Date): number => Math.floor(date.getTime() /
 export const handleApiError = (error: unknown): string => {
   if (axios.isAxiosError(error)) {
     if (error.response) {
-      return `API Error ${error.response.status}: ${error.response.data?.message || error.message}`
+      // Handle rate limit errors specifically
+      if (error.response.status === 429) {
+        return `Rate limited. ${error.response.data?.message || 'Please wait before retrying.'}`
+      }
+      // Handle auth errors
+      if (error.response.status === 401 || error.response.status === 403) {
+        return `Authentication failed: ${error.response.data?.message || 'Invalid or missing API key'}`
+      }
+      return `API Error ${error.response.status}: ${error.response.data?.message || error.response.data?.error || error.message}`
     }
     if (error.request) {
       return 'No response from server. Check if API is running.'
