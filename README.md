@@ -1,133 +1,212 @@
-# FullStackIOT
+# IoT Telemetry & Environmental Monitoring Platform
 
-This repository contains the FullStackIOT backend (Node.js) and ESP device firmware (PlatformIO). This README focuses on production deployment using Docker Compose on an x86_64 Linux server.
+## Executive Summary
 
-**Goal:** Run the backend as a container on your Linux server with a highly optimized SQLite database, automated data aggregation pipelines, and an HTTP API exposed on port 3000.
+An end-to-end IoT platform designed to collect, process, and visualize high-frequency environmental telemetry (temperature, humidity, and gas concentration) in real time. The system enables reliable edge-node data ingestion via MQTT, efficient local storage with automated roll-ups, and a responsive frontend for monitoring equipment or environmental health, reducing downtime and improving operational visibility.
 
-## 🚀 Key Features
-- **High-Throughput MQTT Ingestion:** Configured with SQLite WAL mode to handle concurrent writes and heavy data exports without locking.
-- **Automated Data Roll-up:** Built-in cron job to aggregate 5-second interval data into 5-minute averages.
-- **Memory-Safe Data Export:** Stream-based API to export millions of rows into CSV/ZIP formats without blocking the Node.js Event Loop.
-- **Parquet Cold Storage:** Standalone monthly archiving system to compress old data into column-oriented Parquet files and safely prune the active SQLite database.
+## 🚀Key Features
 
-## 🏗️ Architecture Overview
+* **High-Throughput Telemetry Ingestion:** Non-blocking MQTT subscriber capable of handling high-frequency sensor payloads.
+* **Resilient Edge Connectivity:** Automated WiFi-loss detection with a localized fallback configuration portal.
+* **Stream-Optimized Data Export:** Memory-safe API for exporting millions of rows into compressed CSV archives without blocking the Node.js event loop.
+* **Automated Data Roll-ups:** Background chron tasks that aggregate granular 5-second interval data into 5-minute averages for fast historical querying.
+* **Cold Storage Archiving:** Standalone data lifecycle management that compresses aged SQLite data into column-oriented Parquet files.
+* **Remote Device Management:** Command and control API to remotely trigger diagnostics or open/close device configuration portals.
 
-The system is designed to handle high-frequency IoT telemetry while maintaining responsive APIs and efficient storage.
+## 🏗️System Architecture
 
-1. **Data Ingestion (MQTT to SQLite):**
-   - ESP devices publish sensor data (e.g., every 5 seconds) to an external MQTT Broker.
-   - The Node.js MQTT Subscriber listens to these topics and inserts raw data into SQLite.
-   - **WAL (Write-Ahead Logging) Mode** is enabled in SQLite to ensure that heavy read operations (like large CSV exports) do not block continuous write operations.
+The architecture is built to isolate high-velocity ingestion from client-facing read operations.
 
-2. **Real-Time & Historical APIs (Express.js):**
-   - The HTTP Server provides endpoints for frontend dashboards to fetch the latest readings, device status, and historical charts.
-   - **Streaming Exports:** Large data exports (e.g., 7-day raw data) are streamed directly from the database to a compressed `.zip` HTTP response, keeping server memory (RAM) footprint extremely low.
+```mermaid
+flowchart LR
+    subgraph Edge Layer
+        A[ESP8266 / ESP32]
+        S1[DHT11 Sensor] --> A
+        S2[MQ-2 Gas Sensor] --> A
+    end
 
-3. **Data Aggregation (Roll-up Pipeline):**
-   - An internal Node.js cron job runs every 5 minutes. It calculates the average of all valid sensor readings within that window and stores them in a dedicated aggregation table (`sensor_data_5m_agg`). This enables fast, lightweight queries for long-term trends.
+    subgraph Communication
+        B[MQTT Broker]
+    end
 
-4. **Cold Storage (Parquet Archiver):**
-   - To prevent database bloat, a standalone Node.js script is scheduled to run monthly. It extracts the previous month's raw data, converts it into highly compressed **Parquet files** (partitioned by `year=YYYY/month=MM`), and safely prunes the old rows from SQLite via chunked deletion.
+    subgraph Backend Services
+        C[Node.js / Express API]
+        D[MQTT Subscriber Service]
+        E[5-Min Aggregator Cron]
+        F[Monthly Parquet Archiver]
+    end
 
-## 📂 Contents
-- **backend/** — Node.js service (MQTT subscriber, HTTP API, Cron Jobs, SQLite persistence)
-- **frontend/** — React dashboard (not part of Docker deployment)
-- **PlatformIO/** — Embedded firmware for the ESP device (not part of Docker deployment)
+    subgraph Storage Layer
+        G[(SQLite WAL)]
+        H[(Parquet Cold Storage)]
+    end
 
-*Important: This guide assumes you already have a running MQTT broker (external to this compose) and Docker + Docker Compose installed on the server.*
+    subgraph Presentation
+        I[React Dashboard]
+    end
 
-## 🛠️ Quick Start (Production)
-
-1. **Copy and configure environment file**
-	Create a `.env` for the backend by copying the example:
-	```bash
-	cp backend/.env.example backend/.env
-	```
-
-	Edit `backend/.env` and set your MQTT broker host, credentials, and API config. Ensure `API_BIND_ADDR` is set to `0.0.0.0`.
-	
-
-2. **Prepare Persistence Directories**
-	Ensure the `data` and `parquet` directories exist on the host to persist the database and cold storage archives:
-	```bash
-	mkdir -p backend/data
-	mkdir -p backend/parquet
-
-	```
-
-
-3. **Build and start with Docker Compose:**
-	```bash
-	docker-compose build
-	docker-compose up -d
-
-	```
-
-
-4. **Verify service is running and healthy:**
-	```bash
-	docker-compose logs -f backend
-	curl http://localhost:3000/health
-
-	```
-
-
-
-## 📡 REST API Endpoints
-
-### Data & Export API
-
-* `GET /devices` — List all known devices, last seen timestamps, and reading counts.
-* `GET /sensors/latest?deviceId=DEVICE` — Get the single most-recent reading.
-* `GET /sensors/history?deviceId=DEVICE&from=TS&to=TS` — Query historical raw data.
-* `POST /api/export/raw` — Export raw 7-day data (Streams a `.zip` containing `.csv` per device).
-* Body: `{ "deviceIds": ["DEVICE_1"], "startTime": 1718000000, "endTime": 1718600000 }`
-
-
-* `GET /api/export/aggregated` — Export monthly 5-minute aggregated data.
-
-### Command & Control API
-
-* `POST /wifi/open` — Open device wifi portal. Body: `{ "deviceId": "DEVICE" }`
-* `POST /wifi/close` — Close device wifi portal. Body: `{ "deviceId": "DEVICE" }`
-* `POST /command` — Send arbitrary command. Body: `{ "deviceId": "DEVICE", "payload": "cmd" }`
-* `GET /health` — Health check status.
-
-## ⚙️ Background Jobs & Maintenance
-
-### 1. 5-Minute Aggregator (Internal)
-
-The backend runs an internal cron job (`node-cron`) every 5 minutes. It calculates the average of all valid sensor readings and inserts them into the `sensor_data_5m_agg` table. **No manual intervention is required.**
-
-### 2. Monthly Parquet Archiver (External)
-
-To prevent the SQLite database from bloating, older data should be converted to `.parquet` format and deleted from the main database. This is a CPU-intensive task designed to run as a **standalone script** so it doesn't block MQTT ingestion.
-Run this script manually or via OS-level `crontab` at the start of every month:
-
-```bash
-# Example running locally or inside the container:
-npm run archive:monthly
+    A -- "JSON Payload" --> B
+    B -- "Subscribes" --> D
+    D -- "Real-time Inserts" --> G
+    E -- "Rolls up data" --> G
+    F -- "Extracts & Deletes" --> G
+    F -- "Compresses" --> H
+    C -- "Queries" --> G
+    C -- "HTTP / REST" --> I
 
 ```
 
-*Files will be saved in `backend/parquet/year=YYYY/month=MM/device.parquet`.*
+### Layer Breakdown
 
-## 💾 Data Persistence & Backups
+* **Device Layer:** ESP microcontrollers polling physical sensors, performing local calibration (e.g., MQ-2 R0 calculation), and publishing serialized JSON payloads.
+* **Communication Layer:** MQTT broker serving as the decoupled ingestion point.
+* **Processing Layer:** Node.js backend managing both the MQTT subscription (write pipeline) and the REST Express server (read pipeline).
+* **Storage Layer:** A heavily optimized SQLite database for active data, alongside a filesystem-based Parquet archive for historical records.
+* **Presentation Layer:** A Vite/React frontend utilizing Tailwind CSS and Recharts for data visualization.
 
-Data is persisted on the host in two locations:
+## 💻Technology Stack
 
-1. Active Database: `./backend/data/fsiot.db`
-2. Cold Storage: `./backend/parquet/`
+**Embedded:**
 
-To create a backup of the active database safely:
+* C++ / Arduino Framework
+* ESP8266 & ESP32
+* WiFiManager & MQTT Client
 
-```bash
-sqlite3 backend/data/fsiot.db ".backup 'backups/fsiot.db.$(date +%F_%T)'"
+**Backend:**
+
+* Node.js & Express.js
+* MQTT.js
+* better-sqlite3
+
+**Database & Storage:**
+
+* SQLite3
+* Apache Parquet (via parquetjs-lite)
+
+**Frontend:**
+
+* React 19 & TypeScript
+* Vite & Tailwind CSS 4
+* Recharts
+
+**Infrastructure:**
+
+* Docker & Docker Compose
+* Linux
+
+## 📊Engineering Challenges & Solutions
+
+### 1. Managing High-Velocity Data in a Standard Database
+
+**Challenge:** The practical challenges of managing high-velocity, real-time data from IoT devices often lead to database locking, especially when heavy historical reads conflict with continuous batch insertions.
+**Solution:** Enabled SQLite's Write-Ahead Logging (WAL) mode and `synchronous = NORMAL` pragmas. This allows concurrent readers and writers. Furthermore, implemented a data aggregation pipeline (5-minute roll-ups) to summarize the raw high-frequency data. Dashboards query the aggregated tables rather than the raw data, drastically reducing latency and I/O overhead.
+
+### 2. Edge Network Resiliency
+
+**Challenge:** Edge devices deployed in environments with unstable networking often fall offline and require manual physical resets to update credentials.
+**Solution:** Developed a state-aware WiFi tracking mechanism in the firmware. If the WiFi connection is lost for more than 2 minutes, the ESP device automatically switches to `WIFI_AP_STA` mode and spins up a local captive portal. Once the connection is restored, the portal is automatically torn down to conserve memory and power.
+
+### 3. V8 Event Loop Blocking on Large Data Exports
+
+**Challenge:** Exporting 7-day raw telemetry logs for multiple devices caused memory spikes and blocked the single-threaded Node.js event loop, degrading the real-time API.
+**Solution:** Transitioned the export API to a pure stream-based architecture. Data is queried via database cursors and piped directly into a compression stream (ZIP/CSV) on the HTTP response object, keeping RAM usage strictly under the 256MB Docker container limit.
+
+## Design Decisions
+
+### Why MQTT?
+
+MQTT was selected over HTTP for the device layer because its lightweight publish-subscribe model is highly optimized for low-bandwidth IoT environments and significantly reduces packet overhead on the microcontrollers.
+
+### Why SQLite with WAL?
+
+While a heavy RDBMS (like PostgreSQL) is standard for backend systems, SQLite was chosen to minimize operational complexity and deployment overhead. By enabling WAL mode and isolating long-term storage, SQLite easily handles the required concurrency and throughput without the need for a separate database server.
+
+### Why Parquet for Cold Storage?
+
+Historical telemetry is rarely queried but must be retained. Storing years of raw data in SQLite leads to severe file bloat. Apache Parquet is a column-oriented data format that achieves massive compression ratios on repetitive time-series data. The monthly archiver seamlessly moves old data into Parquet, ensuring the active database remains fast and lean.
+
+## 📂Repository Structure
+
+```text
+├── backend/
+│   ├── src/
+│   │   ├── api/         # Express routes (Export, Devices, Health)
+│   │   ├── db/          # SQLite initialization, queries, and WAL pragmas
+│   │   ├── mqtt/        # MQTT client, publisher, and subscriber pipelines
+│   │   ├── parser/      # Sensor payload sanitization
+│   │   └── scripts/     # Monthly Parquet archiving logic
+│   ├── data/            # Persisted SQLite volume
+│   └── package.json
+├── frontend/
+│   ├── src/
+│   │   ├── components/  # Reusable UI (SensorCard, Charts)
+│   │   ├── hooks/       # Custom React query hooks
+│   │   ├── pages/       # Dashboard and routing views
+│   │   └── utils/       # API clients and formatting
+│   └── package.json
+├── PlatformIO/
+│   ├── src/
+│   │   └── main.cpp     # ESP device firmware
+│   └── platformio.ini   # Build configurations and library deps
+├── docker-compose.yaml
+└── README.md
 
 ```
 
-## 🔒 Security Notes
+## ⚙️Installation & Deployment
 
-* The HTTP control API can send commands to devices — protect access with firewall rules, private networks, or reverse proxy + authentication.
-* Keep your MQTT broker secured with strong credentials.
+### Prerequisites
 
+* Docker and Docker Compose
+* An accessible MQTT Broker
+
+### Setup
+
+#### 1. **Clone & Configure:**
+```bash
+git clone https://github.com/yourusername/iot-telemetry-platform.git
+cd iot-telemetry-platform
+cp backend/.env.example backend/.env
+
+```
+
+
+*Edit `.env` to include your MQTT broker credentials and set `API_BIND_ADDR=0.0.0.0`.*
+#### 2. **Prepare Volumes:**
+Ensure persistence directories exist:
+```bash
+mkdir -p backend/data backend/parquet
+
+```
+
+
+#### 3. **Deploy:**
+```bash
+docker-compose up -d --build
+
+```
+
+
+#### 4. **Verify Health:**
+```bash
+curl http://localhost:3000/health
+docker-compose logs -f backend
+
+```
+
+
+
+## ⏫Performance & Scalability
+
+The system is tuned for resource-constrained environments. The Node.js Docker container is hard-capped at 256MB of RAM. The architecture scales on the time axis rather than the hardware axis: by aggressively rolling up data into 5-minute chunks and archiving raw payloads into cold storage on a monthly cron schedule, the primary operational database never exceeds a predictable size, guaranteeing flat latency curves over years of uptime.
+
+## Future Improvements
+
+* **Edge AI Inference:** Integrating lightweight deep learning models (like optimized CNNs) directly on the ESP/Raspberry Pi edge nodes to detect gas concentration anomalies locally, reducing the reliance on cloud thresholding.
+* **Over-The-Air (OTA) Updates:** Implementing an OTA pipeline to securely flash updated firmware to remote fleets.
+* **Multi-tenant Support:** Architecting the backend to support role-based access control and multiple organizational silos.
+
+## Lessons Learned
+
+* **Telemetry Pipeline Stability:** Implementing robust, single-attempt non-blocking MQTT reconnection logic is vital; aggressive reconnection loops in C++ can easily trigger hardware watchdogs.
+* **Resource Tradeoffs:** Shifting the burden of data archiving from an active query process to a background, standalone script successfully decoupled system maintenance from API performance.
