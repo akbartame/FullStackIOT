@@ -34,6 +34,13 @@ services:
         reservations:
           memory: 64M
 
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/health"]
+      interval: 30s
+      timeout: 5s
+      start_period: 15s
+      retries: 3
+
     logging:
       driver: json-file
       options:
@@ -57,7 +64,8 @@ services:
       - "80:80"
 
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
 
     environment:
       - NODE_ENV=production
@@ -69,6 +77,13 @@ services:
           memory: 128M
         reservations:
           memory: 32M
+
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost/"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
 
     logging:
       driver: json-file

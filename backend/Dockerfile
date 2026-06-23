@@ -2,7 +2,7 @@
 ARG BUILD_MODE=prod
 
 # ── Production build stage ────────────────────────────
-FROM node:24-alpine AS prod-builder
+FROM node:24.5.0-alpine AS prod-builder
 
 RUN apk add --no-cache python3 make g++
 
@@ -14,13 +14,15 @@ RUN npm ci
 COPY . ./
 
 # ── Production runtime stage ──────────────────────────
-FROM node:24-alpine AS prod
+FROM node:24.5.0-alpine AS prod
 
 WORKDIR /app/backend
 
-RUN adduser -D -h /home/appuser appuser \
-    && mkdir -p /app/backend/data \
-    && chown appuser:appuser /app/backend/data
+# Install wget for health checks
+RUN apk add --no-cache wget && \
+    adduser -D -h /home/appuser appuser && \
+    mkdir -p /app/backend/data && \
+    chown appuser:appuser /app/backend/data
 
 COPY --from=prod-builder --chown=appuser:appuser /app/backend/node_modules ./node_modules
 COPY --from=prod-builder --chown=appuser:appuser /app/backend/src          ./src
@@ -39,15 +41,15 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
 CMD ["node", "index.js"]
 
 # ── Development stage ──────────────────────────────────
-FROM node:24-alpine AS dev
+FROM node:24.5.0-alpine AS dev
 
 RUN apk add --no-cache python3 make g++
 
 WORKDIR /app/backend
 
-RUN adduser -D -h /home/appuser appuser \
-    && mkdir -p /app/backend/data \
-    && chown appuser:appuser /app/backend/data
+RUN adduser -D -h /home/appuser appuser && \
+    mkdir -p /app/backend/data && \
+    chown appuser:appuser /app/backend/data
 
 COPY package*.json ./
 RUN npm ci
