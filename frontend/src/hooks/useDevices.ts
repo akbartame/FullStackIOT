@@ -1,5 +1,7 @@
 import { useReducer, useEffect } from 'react'
+import axios from 'axios'
 import { getDevices, handleApiError, type Device } from '../api'
+import { POLL_INTERVAL_MS } from '../constant'
 
 // ── State & actions ───────────────────────────────────────
 
@@ -40,22 +42,34 @@ export interface UseDevicesReturn {
 export const useDevices = (): UseDevicesReturn => {
   const [fetchId, bumpFetch] = useReducer((n: number) => n + 1, 0)
   const [state,   dispatch]  = useReducer(reducer, initialState)
-
   useEffect(() => {
-    let cancelled = false
+    const controller = new AbortController()
     const id = fetchId
 
-    getDevices()
-      .then(data => {
-        if (cancelled) return
-        dispatch({ type: 'FETCH_SUCCESS', fetchId: id, payload: data })
-      })
-      .catch(err => {
-        if (cancelled) return
-        dispatch({ type: 'FETCH_ERROR', fetchId: id, payload: handleApiError(err) })
-      })
+    let timeoutId: ReturnType<typeof setTimeout>
 
-    return () => { cancelled = true }
+    const poll = async () => {
+      try {
+        const data = await getDevices(controller.signal)
+        if (controller.signal.aborted) return
+        dispatch({ type: 'FETCH_SUCCESS', fetchId: id, payload: data })
+      } catch (err) {
+        if (axios.isCancel(err)) return
+        if (controller.signal.aborted) return
+        dispatch({ type: 'FETCH_ERROR', fetchId: id, payload: handleApiError(err) })
+      }
+
+      if (controller.signal.aborted) return
+
+      timeoutId = setTimeout(poll, POLL_INTERVAL_MS)
+    }
+
+    poll()
+
+    return () => {
+      controller.abort()
+      clearTimeout(timeoutId)
+    }
   }, [fetchId])
 
   return {

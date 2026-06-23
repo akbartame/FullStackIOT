@@ -87,8 +87,8 @@ const apiClient = axios.create({
  * GET /devices
  * Fetch list of all registered devices with metadata
  */
-export const getDevices = async (): Promise<Device[]> => {
-  const { data } = await apiClient.get<Device[]>('/devices')
+export const getDevices = async (signal?: AbortSignal): Promise<Device[]> => {
+  const { data } = await apiClient.get<Device[]>('/devices', { signal })
   return data
 }
 
