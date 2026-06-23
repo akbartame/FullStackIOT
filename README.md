@@ -136,6 +136,7 @@ Historical telemetry is rarely queried but must be retained. Storing years of ra
 │   │   ├── parser/      # Sensor payload sanitization
 │   │   └── scripts/     # Monthly Parquet archiving logic
 │   ├── data/            # Persisted SQLite volume
+│   ├── Dockerfile       # Multi-stage build (prod & dev modes)
 │   └── package.json
 ├── frontend/
 │   ├── src/
@@ -143,11 +144,51 @@ Historical telemetry is rarely queried but must be retained. Storing years of ra
 │   │   ├── hooks/       # Custom React query hooks
 │   │   ├── pages/       # Dashboard and routing views
 │   │   └── utils/       # API clients and formatting
+│   ├── Dockerfile       # Multi-stage build (prod & dev modes)
 │   └── package.json
+├── nginx/
+│   └── nginx.conf       # Reverse proxy config (gzip, caching, API routing)
 ├── PlatformIO/
 │   ├── src/
 │   │   └── main.cpp     # ESP device firmware
 │   └── platformio.ini   # Build configurations and library deps
+├── docker-compose.yaml  # Production orchestration (nginx + backend)
+└── docker-compose.dev.yaml  # Development orchestration (hot-reload)
+```
+
+## 🐳Deployment & Docker
+
+The project uses containerized deployment with separate configurations for development and production:
+
+### Production Deployment
+```bash
+docker-compose up
+```
+- **Backend:** Runs on port 3000 with production-optimized multi-stage build
+- **Frontend:** Served by nginx on port 80 with gzip compression and static asset caching
+- **Reverse Proxy:** nginx proxies `/api/*` requests to the backend service
+- **Resource Limits:** Memory capped at 256MB (backend) and 128MB (frontend)
+
+### Development Deployment
+```bash
+docker-compose -f docker-compose.dev.yaml up
+```
+- **Backend:** Runs on port 3000 with nodemon for hot-reload on code changes
+- **Frontend:** Runs Vite dev server on port 5173 with HMR enabled
+- **Volume Mounts:** Source code mounted for live reload during development
+- **No Resource Limits:** Easier debugging and faster iteration
+
+### Dockerfile Strategy
+Both `backend/Dockerfile` and `frontend/Dockerfile` use multi-stage builds with build arguments:
+- `BUILD_MODE=prod` — optimized production image with minimal footprint
+- `BUILD_MODE=dev` — includes development tools (nodemon, source maps)
+
+### nginx Configuration
+Located at `nginx/nginx.conf`:
+- **Gzip Compression:** Reduces response sizes for text/CSS/JS/JSON
+- **Static Asset Caching:** Sets 1-year cache headers for immutable assets
+- **SPA Fallback:** Routes all unknown paths to `index.html` for React Router
+- **API Proxy:** Forwards `/api/*` requests to backend service on internal network
 ├── docker-compose.yaml
 └── README.md
 

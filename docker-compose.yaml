@@ -1,9 +1,11 @@
 services:
   backend:
     build:
-      context: .
+      context: ./backend
       dockerfile: Dockerfile
-    image: fsiot-backend:latest
+      args:
+        BUILD_MODE: prod
+    image: fsiot-backend:prod
     container_name: fsiot-backend
     restart: unless-stopped
 
@@ -40,3 +42,38 @@ services:
 
     # Ensure container restarts are not too aggressive
     stop_grace_period: 10s
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+      args:
+        BUILD_MODE: prod
+    image: fsiot-frontend:prod
+    container_name: fsiot-frontend
+    restart: unless-stopped
+
+    ports:
+      - "80:80"
+
+    depends_on:
+      - backend
+
+    environment:
+      - NODE_ENV=production
+
+    # Resource limits — lightweight frontend served by nginx
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+        reservations:
+          memory: 32M
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+    stop_grace_period: 5s
