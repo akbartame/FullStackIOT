@@ -26,7 +26,6 @@
     "parquetjs-lite": "^0.8.7"
   },
   "devDependencies": {
-    "nodemon": "*",
-    "pm2": "*"
+    "nodemon": "*"
   }
 }
