@@ -17,11 +17,10 @@ services:
       - "host-gateway:host-gateway"
 
     volumes:
-      # Mount source code for nodemon hot reload
-      - ./backend:/app/backend
-      - ./backend/node_modules:/app/backend/node_modules
+      - ./backend/src:/app/backend/src      # Only mount source
+      - ./backend/index.js:/app/backend/index.js
+      - ./backend/node_modules:/app/backend/node_modules  # Preserve install
       - ./backend/data:/app/backend/data
-      - ./backend/.env:/app/backend/.env:ro
 
     env_file:
       - ./backend/.env
@@ -38,8 +37,8 @@ services:
 
   frontend:
     build:
-      context: .
-      dockerfile: frontend/Dockerfile
+      context: ./frontend
+      dockerfile: Dockerfile
       args:
         BUILD_MODE: dev
     image: fsiot-frontend:dev
@@ -54,7 +53,7 @@ services:
 
     volumes:
       # Mount source code for Vite HMR hot reload
-      - ./frontend:/app/frontend
+      - ./frontend:/app/frontend/src
       - ./frontend/node_modules:/app/frontend/node_modules
 
     environment:

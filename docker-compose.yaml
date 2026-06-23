@@ -52,8 +52,8 @@ services:
 
   frontend:
     build:
-      context: .
-      dockerfile: frontend/Dockerfile
+      context: ./frontend
+      dockerfile: Dockerfile
       args:
         BUILD_MODE: prod
     image: fsiot-frontend:prod
